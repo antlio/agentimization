@@ -1,0 +1,33 @@
+{
+  "name": "agentimization",
+  "version": "0.1.0",
+  "description": "GEO audit CLI — check if your website is agent-ready",
+  "license": "MIT",
+  "author": "Anthony Lio <hello@antl.io>",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "agentimization": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@agentimization/shared": "file:../../packages/shared",
+    "commander": "^14.0.3",
+    "ink": "^7.0.1",
+    "@agentimization/core": "file:../../packages/core",
+    "react": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.14",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
