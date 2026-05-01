@@ -1,0 +1,9 @@
+# Good Site
+
+> A well-structured documentation site for AI agents.
+
+## Docs
+
+- [Getting Started](https://good-site.com/docs/getting-started)
+- [API Reference](https://good-site.com/docs/api)
+- [Examples](https://good-site.com/docs/examples)
