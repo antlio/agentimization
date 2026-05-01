@@ -1,0 +1,56 @@
+{
+  "name": "@agentimization/core",
+  "version": "0.1.0",
+  "description": "GEO audit engine. Check if your website is agent-ready and generative-engine optimized.",
+  "keywords": [
+    "geo",
+    "seo",
+    "llm",
+    "ai",
+    "agent-ready",
+    "llms-txt",
+    "generative-engine",
+    "audit"
+  ],
+  "homepage": "https://github.com/antlio/agentimization",
+  "license": "MIT",
+  "author": "Anthony Lio <hello@antl.io>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antlio/agentimization",
+    "directory": "packages/core"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agentimization/shared": "file:../shared",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
