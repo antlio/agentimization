@@ -1,0 +1,21 @@
+{
+  "name": "agentimization-monorepo",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter '*' build",
+    "dev": "bun run --filter '*' dev",
+    "test": "bun run --filter '*' test",
+    "typecheck": "bun run --filter '*' typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.8.17",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.5"
+  }
+}
