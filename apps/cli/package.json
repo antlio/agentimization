@@ -5,26 +5,54 @@
   "license": "MIT",
   "author": "Anthony Lio <hello@antl.io>",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "dist/index.js",
   "bin": {
-    "agentimization": "./dist/index.js"
+    "agentimization": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/antlio/agentimization.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://github.com/antlio/agentimization#readme",
+  "bugs": {
+    "url": "https://github.com/antlio/agentimization/issues"
+  },
+  "keywords": [
+    "geo",
+    "ai",
+    "agents",
+    "audit",
+    "llms-txt",
+    "agentimization",
+    "cli",
+    "seo",
+    "claude",
+    "chatgpt"
+  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "bun run build && cp ../../README.md ./README.md && cp ../../LICENSE ./LICENSE"
   },
   "dependencies": {
-    "@agentimization/shared": "file:../../packages/shared",
     "commander": "^14.0.3",
     "ink": "^7.0.1",
-    "@agentimization/core": "file:../../packages/core",
     "react": "^19.2.5"
   },
   "devDependencies": {
+    "@agentimization/shared": "file:../../packages/shared",
+    "@agentimization/core": "file:../../packages/core",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.14",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.0"
   },
   "engines": {
