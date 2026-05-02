@@ -154,7 +154,7 @@ const contentStartPosition: CheckDefinition = {
   id: "content-start-position",
   name: "Content Start Position",
   category: "page-size",
-  description: "Checks if main content starts within the first 10% of the HTML",
+  description: "Checks how soon main content starts relative to total HTML",
   weight: 0.5,
   run: async (ctx) => {
     const pages = ctx.sampledPages.slice(0, 10)
@@ -173,18 +173,20 @@ const contentStartPosition: CheckDefinition = {
       position: findContentStartPosition(p.html),
     }))
 
-    const earlyStart = positions.filter((p) => p.position <= 0.10)
     const medianPct = Math.round(
       positions.map((p) => p.position).sort((a, b) => a - b)[Math.floor(positions.length / 2)]! * 100,
     )
 
-    if (earlyStart.length === pages.length) {
+    // pass if median is in the first third, warn up to half, fail past that
+    // a head with json-ld and og tags routinely lands around 25 percent which
+    // is acceptable, only worry when content is below the fold of the source
+    if (medianPct <= 30) {
       return {
         id: "content-start-position",
         name: "Content Start Position",
         category: "page-size",
         status: "pass",
-        message: `Content starts within first 10% on all ${pages.length} sampled pages (median ${medianPct}%)`,
+        message: `content starts at ${medianPct}% of html (median over ${pages.length} pages)`,
         metadata: { medianPct },
       }
     }
@@ -193,10 +195,10 @@ const contentStartPosition: CheckDefinition = {
       id: "content-start-position",
       name: "Content Start Position",
       category: "page-size",
-      status: "warn",
-      message: `Content starts late on ${pages.length - earlyStart.length}/${pages.length} pages (median ${medianPct}%)`,
-      suggestion: "Move main content higher in the HTML. AI agents may waste context window tokens on navigation, headers, and boilerplate before reaching actual content.",
-      metadata: { medianPct, earlyStart: earlyStart.length },
+      status: medianPct <= 50 ? "warn" : "fail",
+      message: `content starts at ${medianPct}% of html (median over ${pages.length} pages)`,
+      suggestion: "trim head metadata or move main content higher in the html so ai agents do not waste context tokens on boilerplate before reaching real content.",
+      metadata: { medianPct },
     }
   },
 }

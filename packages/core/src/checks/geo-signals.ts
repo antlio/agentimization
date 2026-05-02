@@ -402,6 +402,18 @@ const canonicalUrlConsistency: CheckDefinition = {
   description: "Checks if pages have consistent canonical URLs",
   weight: 0.5,
   run: async (ctx) => {
+    // canonical urls are a remote concept. local audits cannot verify
+    // self-referencing because the page url is a file path, not a public url
+    if (ctx.mode === "local") {
+      return {
+        id: "canonical-url-consistency",
+        name: "Canonical URL Consistency",
+        category: "geo-signals",
+        status: "info",
+        message: "only meaningful for live urls. re-run against a deployed site to verify",
+      }
+    }
+
     const pages = ctx.sampledPages.slice(0, 10)
     let withCanonical = 0
     let selfReferencing = 0
