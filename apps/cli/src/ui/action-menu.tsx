@@ -10,8 +10,11 @@ import { resolve } from "node:path"
 const FEEDBACK_OK = "oklch(0.858 0.109 142.7)"
 const FEEDBACK_ERR = "oklch(0.718 0.181 10.0)"
 
-const MENU_OPTIONS: MenuOption[] = [
-  { label: "Copy fix prompt to clipboard", value: "copy", hint: "paste into Claude, ChatGPT, etc." },
+// the copy-fix option only appears when there is something to fix
+const buildMenuOptions = (hasIssues: boolean): MenuOption[] => [
+  ...(hasIssues
+    ? [{ label: "Copy fix prompt to clipboard", value: "copy", hint: "paste into Claude, ChatGPT, etc." } as MenuOption]
+    : []),
   { label: "Save JSON report", value: "json", hint: "agentimization-report.json" },
   { label: "Run another URL or path", value: "retry" },
   { label: "Exit", value: "exit" },
@@ -34,6 +37,10 @@ export const ActionMenu = ({
   const [feedback, setFeedback] = useState<string | null>(null)
   const [input, setInput] = useState("")
   const [done, setDone] = useState(false)
+
+  // hide the fix-prompt option when there is nothing to fix
+  const hasIssues = result.summary.failed > 0 || result.summary.warned > 0
+  const menuOptions = buildMenuOptions(hasIssues)
 
   const handleAction = (action: string) => {
     const promptOpts = { mode: isLocal ? "local" as const : "remote" as const, target }
@@ -85,9 +92,9 @@ export const ActionMenu = ({
       if (key.upArrow) {
         setSelected((prev) => Math.max(0, prev - 1))
       } else if (key.downArrow) {
-        setSelected((prev) => Math.min(MENU_OPTIONS.length - 1, prev + 1))
+        setSelected((prev) => Math.min(menuOptions.length - 1, prev + 1))
       } else if (key.return) {
-        const option = MENU_OPTIONS[selected]!
+        const option = menuOptions[selected]!
         handleAction(option.value)
       } else if (char === "q" || key.escape) {
         setDone(true)
@@ -137,7 +144,7 @@ export const ActionMenu = ({
       <Text color={toInkColor(TEXT_DIM)}>  ─── What next? ─────────────────────</Text>
       <Text color={toInkColor(TEXT_DIM)}>  Use ↑↓ arrows, enter to select, q to quit</Text>
       <Box flexDirection="column" marginTop={1}>
-        {MENU_OPTIONS.map((opt, i) => {
+        {menuOptions.map((opt, i) => {
           const isSelected = i === selected
           return (
             <Box key={opt.value} paddingLeft={2}>
