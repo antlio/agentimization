@@ -70,6 +70,7 @@ export const ActionMenu = ({
         setDone(true)
         setTimeout(() => {
           exit()
+          process.stdout.write("\n")
           if (result.overall_score < 50) process.exit(1)
         }, 50)
         break
@@ -90,7 +91,10 @@ export const ActionMenu = ({
         handleAction(option.value)
       } else if (char === "q" || key.escape) {
         setDone(true)
-        setTimeout(() => exit(), 50)
+        setTimeout(() => {
+          exit()
+          process.stdout.write("\n")
+        }, 50)
       }
       return
     }

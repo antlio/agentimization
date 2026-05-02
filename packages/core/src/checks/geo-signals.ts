@@ -188,10 +188,13 @@ const topicalAuthoritySignals: CheckDefinition = {
     let totalInternalLinks = 0
     let pagesWithGoodLinking = 0
 
+    // file:// urls have origin "null" so use href as the resolution base in local mode
+    const resolveBase = ctx.mode === "local" ? ctx.baseUrl.href : ctx.baseUrl.origin
+
     for (const page of pages) {
-      const links = extractLinks(page.html, ctx.baseUrl.origin)
+      const links = extractLinks(page.html, resolveBase)
       const internalLinks = ctx.mode === "local"
-        ? links.filter((l) => !l.startsWith("http://") && !l.startsWith("https://"))
+        ? links.filter((l) => l.startsWith("file:"))
         : links.filter((l) => {
             try {
               return new URL(l).origin === ctx.baseUrl.origin
@@ -312,7 +315,9 @@ const eeatSignals: CheckDefinition = {
 
       // expertise markers
       const hasCredentials = /Ph\.?D|M\.?D|CPA|certified|licensed|expert|specialist/i.test(page.html)
-      const hasAboutPage = extractLinks(page.html, ctx.baseUrl.origin).some((l) => /about|team|author/i.test(l))
+      // file:// origin is "null" so use href in local mode
+      const linkBase = ctx.mode === "local" ? ctx.baseUrl.href : ctx.baseUrl.origin
+      const hasAboutPage = extractLinks(page.html, linkBase).some((l) => /about|team|author/i.test(l))
 
       if (hasCredentials || hasAboutPage) withExpertise++
     }
