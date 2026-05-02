@@ -1,0 +1,204 @@
+---
+import Page from "../layouts/Page.astro"
+import HeroCard from "../components/HeroCard.astro"
+import InstallCard from "../components/InstallCard.astro"
+
+const title = "agentimization — geo audit for agent-ready websites"
+const description =
+  "one command to score how well ai agents can discover, parse, and cite your site. 36 checks, a 0 to 100 grade, and ready-to-paste fixes."
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "agentimization",
+    url: "https://agentimization.com",
+    description,
+    author: { "@type": "Person", name: "Anthony Lio" },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "agentimization",
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "macOS, Linux, Windows",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    softwareVersion: "0.1.0",
+    downloadUrl: "https://www.npmjs.com/package/agentimization",
+    author: { "@type": "Person", name: "Anthony Lio" },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "What is GEO?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Generative engine optimization. The set of practices that make a website discoverable, parseable, and citable by ai agents like Claude, ChatGPT, Perplexity, and Gemini.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "What does agentimization actually check?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "36 checks across 8 categories: content discoverability, markdown availability, content structure, page size and rendering, url stability, authentication, geo signals, and agent protocols.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Does it work on local directories too?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes. Pass a path instead of a url and it audits the files on disk. Useful as a ci pre-deploy step.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How is the score computed?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Each check returns pass, warn, fail, or skip. Checks are weighted by impact. The weighted average becomes a 0 to 100 score, mapped to a letter grade. A failing auth gate caps the overall score at 50.",
+        },
+      },
+    ],
+  },
+]
+---
+
+<Page title={title} description={description} path="/" jsonLd={jsonLd}>
+  <HeroCard />
+
+  <h1>geo audit for agent-ready websites.</h1>
+  <p class="byline">
+    by <a href="https://antl.io" rel="author">anthony lio</a> &middot;
+    <time datetime="2026-04-29">apr 29, 2026</time> &middot;
+    updated <time datetime="2026-05-02">may 2, 2026</time>
+  </p>
+  <p>
+    one command to score how well ai agents can discover, parse, and cite your
+    site. 36 checks, a 0 to 100 grade, and ready-to-paste fixes for whatever's
+    broken.
+  </p>
+
+  <InstallCard />
+
+  <h2>how it works</h2>
+  <p>
+    point it at any url. it samples up to 10 pages, runs 36 checks against the
+    html, headers, and well-known files, then weights them into a single score.
+    every failure comes with a suggestion you can paste straight into <span class="pill">claude code</span>,
+    cursor, or any ai agent that can edit your repo.
+  </p>
+
+  <h2>by the numbers</h2>
+  <p>
+    <strong>36 checks</strong> across <strong>8 categories</strong>. samples up to
+    <strong>10 pages</strong> per audit. a typical run completes in <strong>under
+    15 seconds</strong>. weights map a 0 to 100 score to one of six grade bands.
+  </p>
+
+  <h2>terminology</h2>
+  <p>
+    <dfn><strong>geo</strong></dfn> is a name for the practices that make a
+    website discoverable by ai agents. <dfn><strong>llms.txt</strong></dfn>
+    refers to a small text file at the root of a site that lists key pages and
+    their purpose. <dfn><strong>content negotiation</strong></dfn> means a
+    server returns different formats (html or markdown) based on the request's
+    <code>Accept</code> header. <dfn><strong>e-e-a-t</strong></dfn> stands for
+    experience, expertise, authoritativeness, and trustworthiness, the signals
+    generative engines use to decide what's safe to cite. read the
+    <a href="/about">about page</a> for the longer explanation, the
+    <a href="/about#how-the-score-works">scoring rubric</a>, or the
+    <a href="https://github.com/antlio/agentimization">source repository</a>
+    for more.
+  </p>
+
+  <h2>what it checks</h2>
+  <ul>
+    <li><strong>content discoverability</strong> &nbsp;<code>llms.txt</code>, sitemap, robots</li>
+    <li><strong>markdown availability</strong> &nbsp;<code>.md</code> urls, content negotiation</li>
+    <li><strong>content structure</strong> &nbsp;headings, code fences, hidden tabs</li>
+    <li><strong>page size and rendering</strong> &nbsp;ssr vs csr, boilerplate ratio</li>
+    <li><strong>url stability</strong> &nbsp;status codes, redirects, canonicals</li>
+    <li><strong>authentication and access</strong> &nbsp;gates, alternative paths</li>
+    <li><strong>geo signals</strong> &nbsp;json-ld, citations, freshness, e-e-a-t</li>
+    <li><strong>agent protocols</strong> &nbsp;mcp card, api catalog, agents.md, link headers</li>
+  </ul>
+
+  <h2>programmatic use</h2>
+  <pre><code>{`import { audit } from "@agentimization/core"
+
+const result = await audit("https://your-site.com")
+console.log(result.grade, result.overall_score)`}</code></pre>
+
+  <h2>faq</h2>
+  <div class="faq">
+    <details>
+      <summary>what is geo?</summary>
+      <div>
+        <p>
+          generative engine optimization. the set of practices that make a
+          website discoverable, parseable, and citable by ai agents like claude,
+          chatgpt, perplexity, and gemini.
+        </p>
+        <p>
+          it overlaps with seo but the audience is different. seo optimizes for
+          ranking algorithms. geo optimizes for systems that read your content,
+          summarize it, and decide whether to cite you.
+        </p>
+      </div>
+    </details>
+    <details>
+      <summary>does it work on local directories too?</summary>
+      <div>
+        <p>
+          yes. pass a path instead of a url and it audits the files on disk.
+          useful as a ci pre-deploy step.
+        </p>
+        <pre><code>agentimization . --json</code></pre>
+      </div>
+    </details>
+    <details>
+      <summary>how is the score computed?</summary>
+      <div>
+        <p>
+          each check returns pass, warn, fail, or skip. checks are weighted by
+          impact. the weighted average becomes a 0 to 100 score, mapped to a
+          letter grade.
+        </p>
+        <p>a failing auth gate caps the overall score at 50, since agents that cannot reach your content cannot read it.</p>
+      </div>
+    </details>
+    <details>
+      <summary>what's an example fix?</summary>
+      <div>
+        <p>
+          if you fail <code>llms-txt-exists</code>, the suggestion is a copy-paste-ready
+          markdown skeleton with your project's title, blockquote description,
+          and section headings linking to your key pages.
+        </p>
+      </div>
+    </details>
+    <details>
+      <summary>can i hide it from a category?</summary>
+      <div>
+        <p>
+          yes. pass <code>--category content-discoverability</code> to only run that one
+          group, or set <code>categories</code> in the programmatic api.
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <h2>more</h2>
+  <ul>
+    <li><a href="/about">about agentimization</a> — the longer write-up</li>
+    <li><a href="/about#how-the-score-works">how the score works</a> — the scoring rubric in detail</li>
+    <li><a href="/index.md">this page in markdown</a> — paste straight into an agent</li>
+    <li><a href="/llms.txt">llms.txt</a> — site index for ai agents</li>
+    <li><a href="/llms-full.txt">llms-full.txt</a> — full content as plain text</li>
+  </ul>
+</Page>

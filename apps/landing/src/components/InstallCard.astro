@@ -1,0 +1,35 @@
+---
+const command = "npx agentimization https://your-site.com"
+---
+
+<div class="cta-card">
+  <div>
+    <span class="prompt">$&nbsp;</span>
+    <span class="cmd">{command}</span>
+  </div>
+  <button class="copy" type="button" data-clipboard={command} aria-label="copy install command">copy</button>
+</div>
+
+<script>
+  // tiny copy-to-clipboard handler. progressive enhancement, the command is
+  // visible and selectable without js.
+  const buttons = document.querySelectorAll<HTMLButtonElement>("[data-clipboard]")
+  for (const btn of buttons) {
+    btn.addEventListener("click", async () => {
+      const text = btn.dataset.clipboard
+      if (!text) return
+      try {
+        await navigator.clipboard.writeText(text)
+        const original = btn.textContent
+        btn.classList.add("copied")
+        btn.textContent = "copied"
+        setTimeout(() => {
+          btn.classList.remove("copied")
+          btn.textContent = original ?? "copy"
+        }, 1500)
+      } catch {
+        // clipboard not available, the user can still select the text manually
+      }
+    })
+  }
+</script>

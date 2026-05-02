@@ -1,0 +1,88 @@
+---
+// hero card mock of the cli output. one pre block of pre-formatted text plus
+// a wordmark stamped at the bottom. tiny html footprint, all motion is css.
+const lines = [
+  "▓░▒▓░░▒░▓▒░▓▓░▒░▓░░▒▓▒░▓░░▓▒░▓░▒░▓░░▒▓░░",
+  "░▓▒░▓░░▒▓▒░▓░░▒▓▓░▒░▓▒░░▓▒░▓░▒░░▓▒░░▓░▒",
+  "▓░▒▓░░▒▓▒░░▓░▒▓▒░░▓░░▓▒░▓░▒░░▓▒░▓░░▒▓░",
+  "░▒▓░▒░▓▒░░▓░▒▓░░▒▓▒░░▓░▒▓░░▒▓░",
+]
+---
+
+<div class="hero">
+  <div class="frame">
+    <pre class="grid" aria-label="agentimization terminal output">{lines[0]}
+{lines[1]}
+{lines[2]}
+{lines[3]}<span class="wordmark"> agentimization</span></pre>
+  </div>
+</div>
+
+<style>
+  .hero {
+    margin-bottom: calc(var(--base) * 8);
+    display: flex;
+    justify-content: center;
+  }
+
+  .frame {
+    background: var(--card);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-card);
+    padding: calc(var(--base) * 5) calc(var(--base) * 5);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 30%,
+      var(--accent-bg) 50%,
+      transparent 70%,
+      transparent 100%
+    );
+    background-size: 250% 100%;
+    background-position: 0% 0%;
+    opacity: 0.45;
+    mix-blend-mode: multiply;
+    animation: sweep 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes sweep {
+    0%, 100% { background-position: 0% 0%; }
+    50% { background-position: 100% 0%; }
+  }
+
+  .grid {
+    font-family: "Berkeley Mono", "JetBrains Mono", ui-monospace, monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    letter-spacing: 0.06em;
+    color: var(--bg-block);
+    margin: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    white-space: pre;
+    overflow: hidden;
+  }
+
+  .wordmark {
+    color: var(--fg);
+    font-weight: 500;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .frame::before {
+      animation: none;
+      background-position: 50% 0%;
+    }
+  }
+</style>

@@ -1,0 +1,31 @@
+# open to humans, agents, and search engines
+
+User-agent: *
+Allow: /
+
+# explicitly welcome generative engines
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+# content signals (rfc-style ai usage declarations)
+# ai-train: yes — content may be used for training
+# ai-input: yes — content may be used as model input
+# ai-output: cite-source — citation required when content surfaces in output
+
+Sitemap: https://agentimization.com/sitemap.xml

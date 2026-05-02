@@ -13,6 +13,8 @@
 
 geo audit for agent-ready websites and projects.
 
+geomaxx your site so ai agents can actually find, parse, and cite it.
+
 ## install
 
 ```bash

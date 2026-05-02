@@ -1,0 +1,14 @@
+# agentimization
+
+> geo audit for agent-ready websites and projects. one command to score how well ai agents can discover, parse, and cite your site.
+
+## docs
+
+- [home](https://agentimization.com/index.md): overview, install, how it works, faq
+- [readme](https://raw.githubusercontent.com/antlio/agentimization/main/README.md): repository readme
+- [design notes](https://raw.githubusercontent.com/antlio/agentimization/main/Design.md): design principles
+- [contributing](https://raw.githubusercontent.com/antlio/agentimization/main/CONTRIBUTING.md): how to contribute
+- [agents.md](https://raw.githubusercontent.com/antlio/agentimization/main/AGENTS.md): coding-agent guide
+- [skill spec](https://raw.githubusercontent.com/antlio/agentimization/main/skills/agentimization/SKILL.md): claude code skill
+- [core changelog](https://raw.githubusercontent.com/antlio/agentimization/main/packages/core/CHANGELOG.md): @agentimization/core releases
+- [cli changelog](https://raw.githubusercontent.com/antlio/agentimization/main/apps/cli/CHANGELOG.md): agentimization cli releases

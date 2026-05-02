@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "name": "agentimization",
+      "description": "geo audit for agent-ready websites. use before deploying or when a user wants to check ai discoverability.",
+      "version": "0.1.0",
+      "homepage": "https://agentimization.com",
+      "install": "npx -y agentimization@latest",
+      "spec": "https://raw.githubusercontent.com/antlio/agentimization/main/skills/agentimization/SKILL.md"
+    }
+  ]
+}

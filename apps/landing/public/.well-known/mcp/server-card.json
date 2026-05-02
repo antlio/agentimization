@@ -1,0 +1,53 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/server-card.json",
+  "name": "agentimization",
+  "version": "0.1.0",
+  "description": "geo audit for agent-ready websites and projects. runs 36 checks across 8 categories and outputs a 0 to 100 score with actionable fixes.",
+  "homepage": "https://agentimization.com",
+  "repository": "https://github.com/antlio/agentimization",
+  "license": "MIT",
+  "author": {
+    "name": "Anthony Lio",
+    "url": "https://antl.io"
+  },
+  "capabilities": {
+    "tools": [
+      {
+        "name": "audit",
+        "description": "run a geo audit on a remote url or local directory",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "description": "url or filesystem path"
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "content-discoverability",
+                  "markdown-availability",
+                  "content-structure",
+                  "page-size",
+                  "url-stability",
+                  "authentication",
+                  "geo-signals",
+                  "agent-protocols"
+                ]
+              }
+            },
+            "sampleSize": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          },
+          "required": ["target"]
+        }
+      }
+    ]
+  }
+}
