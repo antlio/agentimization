@@ -1,6 +1,6 @@
 {
   "name": "agentimization",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GEO audit CLI — check if your website is agent-ready",
   "license": "MIT",
   "author": "Anthony Lio <hello@antl.io>",

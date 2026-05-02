@@ -1,6 +1,6 @@
 {
   "name": "@agentimization/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GEO audit engine. Check if your website is agent-ready and generative-engine optimized.",
   "keywords": [
     "geo",
