@@ -29,6 +29,11 @@ jobs:
 
       - run: sudo npm install -g npm@11
 
+      - run: |
+          which npm
+          npm --version
+          npm config get registry
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
