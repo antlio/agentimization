@@ -27,12 +27,10 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - run: sudo npm install -g npm@11
-
       - run: |
-          which npm
+          sudo corepack enable npm
+          sudo corepack prepare npm@11.5.1 --activate
           npm --version
-          npm config get registry
 
       - uses: oven-sh/setup-bun@v2
         with:
