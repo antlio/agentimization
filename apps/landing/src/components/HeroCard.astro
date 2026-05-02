@@ -1,63 +1,137 @@
 ---
-// hero card mock of the cli output. one pre block of pre-formatted text plus
-// a wordmark stamped at the bottom. tiny html footprint, all motion is css.
-const lines = [
-  "▓░▒▓░░▒░▓▒░▓▓░▒░▓░░▒▓▒░▓░░▓▒░▓░▒░▓░░▒▓░░",
-  "░▓▒░▓░░▒▓▒░▓░░▒▓▓░▒░▓▒░░▓▒░▓░▒░░▓▒░░▓░▒",
-  "▓░▒▓░░▒▓▒░░▓░▒▓▒░░▓░░▓▒░▓░▒░░▓▒░▓░░▒▓░",
-  "░▒▓░▒░▓▒░░▓░▒▓░░▒▓▒░░▓░▒▓░░▒▓░",
-]
+// hero card mock of the cli output. ssr renders frame 0 so the page is
+// readable without js. on the client a small ticker advances frames every
+// 120ms, exactly mirroring the cli's pattern animation.
+const ROWS = 4
+const COLS = 42
+const PATTERN_GLYPHS = ["░", "▒", "▓", "█"]
+
+const cellGlyph = (row: number, col: number, frame: number): { char: string; accent: boolean } => {
+  const v = (row * 7 + col * 13 + frame * 3) % 17
+  const idx = Math.floor((v / 17) * PATTERN_GLYPHS.length)
+  const accent = (row * 5 + col * 11 + frame) % 13 < 5
+  return { char: PATTERN_GLYPHS[idx]!, accent }
+}
+
+const wordmark = " agentimization"
+const wordmarkRow = ROWS - 1
+const wordmarkStart = COLS - wordmark.length
+
+// initial frame for ssr
+const rows = Array.from({ length: ROWS }, (_, r) =>
+  Array.from({ length: COLS }, (_, c) => {
+    if (r === wordmarkRow && c >= wordmarkStart) {
+      return { char: wordmark[c - wordmarkStart]!, kind: "wordmark" as const }
+    }
+    const cell = cellGlyph(r, c, 0)
+    return { char: cell.char, kind: (cell.accent ? "accent" : "base") as "accent" | "base" }
+  }),
+)
 ---
 
 <div class="hero">
   <div class="frame">
-    <pre class="grid" aria-label="agentimization terminal output">{lines[0]}
-{lines[1]}
-{lines[2]}
-{lines[3]}<span class="wordmark"> agentimization</span></pre>
+    <div class="grid" id="hero-grid" data-rows={ROWS} data-cols={COLS} aria-label="agentimization terminal output">
+      {rows.map((row) => (
+        <div class="row">
+          {row.map((cell) => (
+            <span class={`cell ${cell.kind}`}>{cell.char}</span>
+          ))}
+        </div>
+      ))}
+    </div>
   </div>
 </div>
 
+<script>
+  // re-implements the cli's cellGlyph and ticks every 120ms so the pattern
+  // shifts the same way it does in the terminal. no js means the page still
+  // shows the static frame 0.
+  const PATTERN_GLYPHS = ["░", "▒", "▓", "█"]
+
+  const cellGlyph = (row: number, col: number, frame: number): { char: string; accent: boolean } => {
+    const v = (row * 7 + col * 13 + frame * 3) % 17
+    const idx = Math.floor((v / 17) * PATTERN_GLYPHS.length)
+    const accent = (row * 5 + col * 11 + frame) % 13 < 5
+    return { char: PATTERN_GLYPHS[idx]!, accent }
+  }
+
+  const grid = document.getElementById("hero-grid")
+  if (grid) {
+    const rows = Number(grid.dataset.rows) || 4
+    const cols = Number(grid.dataset.cols) || 42
+
+    // collect cell elements in [row][col] order, skipping wordmark cells
+    const cells: (HTMLSpanElement | null)[][] = []
+    const rowEls = Array.from(grid.querySelectorAll<HTMLDivElement>(".row"))
+    for (let r = 0; r < rows; r++) {
+      const cellEls = Array.from(rowEls[r]!.querySelectorAll<HTMLSpanElement>(".cell"))
+      cells.push(
+        cellEls.map((el) => (el.classList.contains("wordmark") ? null : el)),
+      )
+    }
+
+    let frame = 0
+    const tick = () => {
+      frame = (frame + 1) % 1000
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const el = cells[r]?.[c]
+          if (!el) continue
+          const { char, accent } = cellGlyph(r, c, frame)
+          if (el.textContent !== char) el.textContent = char
+          if (accent && !el.classList.contains("accent")) {
+            el.classList.add("accent")
+            el.classList.remove("base")
+          } else if (!accent && !el.classList.contains("base")) {
+            el.classList.add("base")
+            el.classList.remove("accent")
+          }
+        }
+      }
+    }
+
+    // honor reduced motion preference
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)")
+    if (!prefersReduced.matches) {
+      setInterval(tick, 120)
+    }
+  }
+</script>
+
 <style>
   .hero {
+    --accent: var(--phase-init);
     margin-bottom: calc(var(--base) * 8);
     display: flex;
     justify-content: center;
+    animation: phase 8s linear infinite;
+  }
+
+  /* cycle the accent through the four cli phases */
+  @keyframes phase {
+    0%, 24%   { --accent: var(--phase-init); }
+    25%, 49%  { --accent: var(--phase-checking); }
+    50%, 74%  { --accent: var(--phase-scoring); }
+    75%, 99%  { --accent: var(--phase-done); }
+    100%      { --accent: var(--phase-init); }
+  }
+
+  /* @property allows the variable to interpolate between values */
+  @property --accent {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(0.787 0.119 304.8);
   }
 
   .frame {
     background: var(--card);
     border: 1px solid var(--hairline);
     border-radius: var(--radius-card);
-    padding: calc(var(--base) * 5) calc(var(--base) * 5);
+    padding: calc(var(--base) * 5);
     box-shadow: var(--card-shadow);
     overflow: hidden;
-    position: relative;
-  }
-
-  .frame::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      transparent 30%,
-      var(--accent-bg) 50%,
-      transparent 70%,
-      transparent 100%
-    );
-    background-size: 250% 100%;
-    background-position: 0% 0%;
-    opacity: 0.45;
-    mix-blend-mode: multiply;
-    animation: sweep 4s ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  @keyframes sweep {
-    0%, 100% { background-position: 0% 0%; }
-    50% { background-position: 100% 0%; }
+    width: 100%;
   }
 
   .grid {
@@ -65,24 +139,32 @@ const lines = [
     font-size: 14px;
     line-height: 1.45;
     letter-spacing: 0.06em;
-    color: var(--bg-block);
-    margin: 0;
-    background: transparent;
-    box-shadow: none;
-    padding: 0;
-    white-space: pre;
-    overflow: hidden;
   }
 
-  .wordmark {
-    color: var(--fg);
+  .row {
+    display: flex;
+    white-space: pre;
+  }
+
+  .cell {
+    display: inline-block;
+    transition: color 200ms ease-out;
+  }
+
+  .cell.base {
+    color: var(--bg-block);
+  }
+
+  .cell.accent {
+    color: var(--accent);
+  }
+
+  .cell.wordmark {
+    color: var(--accent);
     font-weight: 500;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .frame::before {
-      animation: none;
-      background-position: 50% 0%;
-    }
+    .hero { animation: none; --accent: var(--phase-done); }
   }
 </style>

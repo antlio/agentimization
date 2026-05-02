@@ -1,7 +1,35 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs"
-import { join, relative, extname } from "node:path"
+import { dirname, join, relative, extname } from "node:path"
 import type { AuditContext, PageSample, AgentimizationConfig } from "@agentimization/shared"
 import { parseSitemapUrls } from "./html.js"
+
+/** Read a file if it exists, return undefined otherwise */
+const readIfExists = (path: string): string | undefined => {
+  try {
+    if (existsSync(path)) {
+      return readFileSync(path, "utf-8")
+    }
+  } catch {
+    // skip
+  }
+  return undefined
+}
+
+/** walk up from start looking for any of the given filenames, stop at the filesystem root */
+const findUpward = (start: string, names: string[], maxDepth = 6): string | undefined => {
+  let current = start
+  for (let i = 0; i < maxDepth; i++) {
+    for (const name of names) {
+      const candidate = join(current, name)
+      const value = readIfExists(candidate)
+      if (value !== undefined) return value
+    }
+    const parent = dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  return undefined
+}
 
 /** Recursively collect files matching given extensions */
 const walkDir = (dir: string, extensions: Set<string>, maxDepth = 10): string[] => {
@@ -33,18 +61,6 @@ const walkDir = (dir: string, extensions: Set<string>, maxDepth = 10): string[] 
   return results
 }
 
-/** Read a file if it exists, return undefined otherwise */
-const readIfExists = (path: string): string | undefined => {
-  try {
-    if (existsSync(path)) {
-      return readFileSync(path, "utf-8")
-    }
-  } catch {
-    // skip
-  }
-  return undefined
-}
-
 /** Build an AuditContext from a local directory */
 export const buildLocalContext = (
   dirPath: string,
@@ -61,8 +77,8 @@ export const buildLocalContext = (
   const apiCatalog = readIfExists(join(dirPath, ".well-known", "api-catalog"))
   const agentSkillsIndex = readIfExists(join(dirPath, ".well-known", "agent-skills", "index.json"))
 
-  const agentsMd = readIfExists(join(dirPath, "AGENTS.md"))
-    ?? readIfExists(join(dirPath, "AGENT.md"))
+  // walk up so auditing a build dir (like dist/) still finds the repo-root agents.md
+  const agentsMd = findUpward(dirPath, ["AGENTS.md", "AGENT.md"])
 
   const sitemapUrls = sitemapXml ? parseSitemapUrls(sitemapXml) : []
 
@@ -86,8 +102,11 @@ export const buildLocalContext = (
   const htmlFiles = walkDir(dirPath, new Set([".html", ".htm"]))
   const mdFiles = walkDir(dirPath, new Set([".md", ".mdx"]))
 
-  const allFiles = [...htmlFiles, ...mdFiles]
-  const sampled = allFiles.slice(0, config.sampleSize)
+  // sample html when it exists, fall back to md for markdown-only repos
+  // markdown files that mirror html pages must not be sampled as separate
+  // pages or html-shaped checks (canonical, json-ld, content-start) misfire
+  const sampleSource = htmlFiles.length > 0 ? htmlFiles : mdFiles
+  const sampled = sampleSource.slice(0, config.sampleSize)
 
   const sampledPages: PageSample[] = sampled.map((filePath) => {
     const content = readFileSync(filePath, "utf-8")

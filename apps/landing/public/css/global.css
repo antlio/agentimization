@@ -13,7 +13,12 @@
   --warn: oklch(0.824 0.101 52.6);
   --fail: oklch(0.718 0.181 10.0);
   --bg-block: oklch(0.404 0.032 280.2);
-  --column: 28rem;
+  /* phase tokens — match the cli accent_by_phase progression */
+  --phase-init: oklch(0.787 0.119 304.8);
+  --phase-checking: oklch(0.847 0.083 210.3);
+  --phase-scoring: oklch(0.824 0.101 52.6);
+  --phase-done: oklch(0.858 0.109 142.7);
+  --column: 36rem;
   --base: 4px;
   --gap-section: calc(var(--base) * 16);
   --radius-card: 14px;
