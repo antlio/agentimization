@@ -33,21 +33,22 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # build in dependency order. each package's prepublishOnly will rebuild
-      # itself anyway but we still warm the dist so cross-workspace bundling
-      # in tsup can resolve @agentimization/* on disk.
+      # build in dependency order. bun copies workspace deps into each
+      # consumer's node_modules, so we reinstall between tiers to propagate
+      # freshly-built dists down the dependency chain.
       - name: Build shared
         run: cd packages/shared && bunx tsc
+
+      - run: bun install --frozen-lockfile
 
       - name: Build core
         run: cd packages/core && bunx tsup
 
+      - run: bun install --frozen-lockfile
+
       - name: Build cli
         run: cd apps/cli && bunx tsup
 
-      # bun's workspace install copies file: deps into each package's
-      # node_modules. those copies are stale until we re-install, so refresh
-      # them now that all the dist directories exist.
       - run: bun install --frozen-lockfile
 
       - name: Create release pull request or publish
