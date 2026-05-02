@@ -148,9 +148,14 @@ export const ActionMenu = ({
         })}
       </Box>
       {feedback ? (
-        <Box marginTop={1} paddingLeft={2}>
-          <Text color={toInkColor(feedback.startsWith("✓") ? FEEDBACK_OK : FEEDBACK_ERR)}>{feedback}</Text>
-        </Box>
+        <>
+          <Box marginTop={1} paddingLeft={2}>
+            <Text color={toInkColor(feedback.startsWith("✓") ? FEEDBACK_OK : FEEDBACK_ERR)}>{feedback}</Text>
+          </Box>
+          <Box height={1}>
+            <Text> </Text>
+          </Box>
+        </>
       ) : null}
     </Box>
   )

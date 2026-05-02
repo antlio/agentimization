@@ -2,12 +2,11 @@
 import { Command } from "commander"
 import { render } from "ink"
 import React from "react"
-import { resolve } from "node:path"
 import { audit, auditLocal } from "@agentimization/core"
 import type { CheckCategory } from "@agentimization/shared"
 import { App } from "./ui/app.js"
 import { generateAgentPrompt } from "./ui/agent-prompt.js"
-import { isLocalPath, normalizeUrl as normalizeUrlOrThrow } from "./ui/target.js"
+import { resolveTarget } from "./ui/target.js"
 
 
 const isColorDisabled = () =>
@@ -79,14 +78,24 @@ Examples:
       ? [opts.category as CheckCategory]
       : undefined
 
-    const isLocal = isLocalPath(target)
+    const resolved = resolveTarget(target)
+    if ("error" in resolved) {
+      console.error(`Error: ${resolved.error}`)
+      return process.exit(1)
+    }
+    const { target: targetResolved, isLocal, autoDetectedFrom } = resolved
+
+    if (autoDetectedFrom && !opts.json) {
+      // surface the redirect to stderr so it doesn't pollute json output
+      console.error(`auditing built output at ${targetResolved}`)
+    }
 
     // json mode skips ink and prints raw output for piping
     if (opts.json) {
       try {
         const result = isLocal
-          ? await auditLocal(resolve(target), { categories, sampleSize: opts.sampleSize })
-          : await audit(normalizeUrl(target), { categories, sampleSize: opts.sampleSize })
+          ? await auditLocal(targetResolved, { categories, sampleSize: opts.sampleSize })
+          : await audit(targetResolved, { categories, sampleSize: opts.sampleSize })
         console.log(JSON.stringify(result, null, 2))
         if (result.overall_score < 50) process.exit(1)
       } catch (error) {
@@ -101,9 +110,9 @@ Examples:
     if (opts.md) {
       try {
         const result = isLocal
-          ? await auditLocal(resolve(target), { categories, sampleSize: opts.sampleSize })
-          : await audit(normalizeUrl(target), { categories, sampleSize: opts.sampleSize })
-        console.log(generateAgentPrompt(result, { mode: isLocal ? "local" : "remote", target }))
+          ? await auditLocal(targetResolved, { categories, sampleSize: opts.sampleSize })
+          : await audit(targetResolved, { categories, sampleSize: opts.sampleSize })
+        console.log(generateAgentPrompt(result, { mode: isLocal ? "local" : "remote", target: targetResolved }))
         if (result.overall_score < 50) process.exit(1)
       } catch (error) {
         const msg = error instanceof Error ? error.message : "Unknown error"
@@ -113,26 +122,16 @@ Examples:
       return
     }
 
-    const targetResolved = isLocal ? resolve(target) : normalizeUrl(target)
-
     render(
       React.createElement(App, {
         target: targetResolved,
         isLocal,
         categories,
         sampleSize: opts.sampleSize,
+        autoDetectedFrom,
       }),
     )
   })
-
-const normalizeUrl = (arg: string): string => {
-  try {
-    return normalizeUrlOrThrow(arg)
-  } catch {
-    console.error(`Error: Invalid URL "${arg}"`)
-    process.exit(1)
-  }
-}
 
 try {
   program.parse()

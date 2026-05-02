@@ -17,9 +17,16 @@ interface AppProps {
   isLocal: boolean
   categories?: CheckCategory[]
   sampleSize?: number
+  autoDetectedFrom?: string
 }
 
-export const App = ({ target: initialTarget, isLocal: initialIsLocal, categories, sampleSize }: AppProps) => {
+export const App = ({
+  target: initialTarget,
+  isLocal: initialIsLocal,
+  categories,
+  sampleSize,
+  autoDetectedFrom,
+}: AppProps) => {
   const [target, setTarget] = useState(initialTarget)
   const [isLocal, setIsLocal] = useState(initialIsLocal)
   const [phase, setPhase] = useState<Phase>("init")
@@ -147,6 +154,10 @@ export const App = ({ target: initialTarget, isLocal: initialIsLocal, categories
           gradeColor={result ? GRADE_COLORS[result.grade] : undefined}
         />
       </Box>
+
+      {autoDetectedFrom ? (
+        <Text dimColor>auto-detected build output (was {autoDetectedFrom})</Text>
+      ) : null}
 
       {isLocal && networkSkipped > 0 && phase === "done" ? (
         <Text dimColor>{networkSkipped} network-only checks skipped</Text>
