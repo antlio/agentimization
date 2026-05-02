@@ -22,11 +22,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      # node ships an npm cli new enough to use oidc trusted publishing
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+
+      - run: npm install -g npm@latest
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -34,9 +35,6 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      # build in dependency order. bun copies workspace deps into each
-      # consumer's node_modules, so we reinstall between tiers to propagate
-      # freshly-built dists down the dependency chain.
       - name: Build shared
         run: cd packages/shared && bunx tsc
 
@@ -52,8 +50,6 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      # no NPM_TOKEN set so npm cli falls back to oidc trusted publishing
-      # configure the trusted publisher on each package's npmjs.com access page
       - name: Create release pull request or publish
         uses: changesets/action@v1
         with:
