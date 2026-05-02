@@ -33,11 +33,22 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Build
-        run: |
-          bunx tsc -p packages/shared/tsconfig.json
-          bunx tsc -p packages/core/tsconfig.json
-          bun --cwd apps/cli run build
+      # build in dependency order. each package's prepublishOnly will rebuild
+      # itself anyway but we still warm the dist so cross-workspace bundling
+      # in tsup can resolve @agentimization/* on disk.
+      - name: Build shared
+        run: cd packages/shared && bunx tsc
+
+      - name: Build core
+        run: cd packages/core && bunx tsup
+
+      - name: Build cli
+        run: cd apps/cli && bunx tsup
+
+      # bun's workspace install copies file: deps into each package's
+      # node_modules. those copies are stale until we re-install, so refresh
+      # them now that all the dist directories exist.
+      - run: bun install --frozen-lockfile
 
       - name: Create release pull request or publish
         uses: changesets/action@v1
