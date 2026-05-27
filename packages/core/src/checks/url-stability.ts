@@ -1,5 +1,35 @@
 import type { CheckDefinition } from "@agentimization/shared"
 
+/** Check if the site is served over HTTPS */
+const httpsEnabled: CheckDefinition = {
+  id: "https-enabled",
+  name: "HTTPS Enabled",
+  category: "url-stability",
+  description: "Checks if the site is served over HTTPS",
+  weight: 0.7,
+  requiresNetwork: true,
+  run: async (ctx) => {
+    if (ctx.baseUrl.protocol === "https:") {
+      return {
+        id: "https-enabled",
+        name: "HTTPS Enabled",
+        category: "url-stability",
+        status: "pass",
+        message: "Site is served over HTTPS",
+      }
+    }
+
+    return {
+      id: "https-enabled",
+      name: "HTTPS Enabled",
+      category: "url-stability",
+      status: "fail",
+      message: `Site is served over ${ctx.baseUrl.protocol.replace(":", "")} — AI crawlers de-prioritize non-HTTPS sources`,
+      suggestion: "Serve your site over HTTPS. AI crawlers like GPTBot, ClaudeBot, and PerplexityBot strongly prefer HTTPS and may skip plain HTTP entirely.",
+    }
+  },
+}
+
 /** Check if pages return proper HTTP status codes for bad URLs */
 const httpStatusCodes: CheckDefinition = {
   id: "http-status-codes",
@@ -129,6 +159,7 @@ const cacheHeaderHygiene: CheckDefinition = {
 }
 
 export const urlStabilityChecks: CheckDefinition[] = [
+  httpsEnabled,
   httpStatusCodes,
   redirectBehavior,
   cacheHeaderHygiene,

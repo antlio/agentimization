@@ -1,5 +1,5 @@
 import type { CheckDefinition } from "@agentimization/shared"
-import { extractHeadings, extractCodeFences } from "../utils/html.js"
+import { extractHeadings, extractCodeFences, extractImages } from "../utils/html.js"
 
 /** Check for properly closed code fences in markdown */
 const markdownCodeFenceValidity: CheckDefinition = {
@@ -197,8 +197,82 @@ const tabbedContentSerialization: CheckDefinition = {
   },
 }
 
+/** Check image alt text coverage (≥50% of images should have alt) */
+const imageAltText: CheckDefinition = {
+  id: "image-alt-text",
+  name: "Image Alt Text Coverage",
+  category: "content-structure",
+  description: "Checks that at least 50% of images have descriptive alt text",
+  weight: 0.5,
+  run: async (ctx) => {
+    const pages = ctx.sampledPages.slice(0, 10)
+    if (pages.length === 0) {
+      return {
+        id: "image-alt-text",
+        name: "Image Alt Text Coverage",
+        category: "content-structure",
+        status: "skip",
+        message: "No pages sampled",
+      }
+    }
+
+    const allImages = pages.flatMap((p) => extractImages(p.html))
+    // alt="" is the WCAG-recommended marker for decorative imagery — neither a pass nor a fail; exclude from the ratio
+    const contentImages = allImages.filter((img) => img.alt === undefined || img.alt.trim().length > 0)
+    const decorativeImages = allImages.length - contentImages.length
+    const withAlt = contentImages.filter((img) => img.alt !== undefined && img.alt.trim().length > 0).length
+
+    if (allImages.length === 0) {
+      return {
+        id: "image-alt-text",
+        name: "Image Alt Text Coverage",
+        category: "content-structure",
+        status: "info",
+        message: `No images found across ${pages.length} sampled pages`,
+      }
+    }
+
+    if (contentImages.length === 0) {
+      return {
+        id: "image-alt-text",
+        name: "Image Alt Text Coverage",
+        category: "content-structure",
+        status: "info",
+        message: `All ${allImages.length} sampled images are decorative (alt="")`,
+        metadata: { decorativeImages, totalImages: allImages.length },
+      }
+    }
+
+    const ratio = withAlt / contentImages.length
+    const pct = Math.round(ratio * 100)
+    const summary = `${withAlt}/${contentImages.length} content images have descriptive alt text (${pct}%)${decorativeImages > 0 ? `; ${decorativeImages} decorative skipped` : ""}`
+
+    if (ratio >= 0.5) {
+      return {
+        id: "image-alt-text",
+        name: "Image Alt Text Coverage",
+        category: "content-structure",
+        status: "pass",
+        message: summary,
+        metadata: { withAlt, contentImages: contentImages.length, decorativeImages, pct },
+      }
+    }
+
+    return {
+      id: "image-alt-text",
+      name: "Image Alt Text Coverage",
+      category: "content-structure",
+      status: ratio >= 0.25 ? "warn" : "fail",
+      message: summary,
+      suggestion: "Add descriptive alt text to at least 50% of content images. AI agents and screen readers rely on alt text to understand visual content. Mark purely decorative images with alt=\"\" so they don't dilute the ratio.",
+      metadata: { withAlt, contentImages: contentImages.length, decorativeImages, pct },
+    }
+  },
+}
+
 export const contentStructureChecks: CheckDefinition[] = [
   markdownCodeFenceValidity,
   sectionHeaderQuality,
   tabbedContentSerialization,
+  imageAltText,
 ]

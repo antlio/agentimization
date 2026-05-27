@@ -27,20 +27,20 @@ export const extractLinks = (html: string, baseUrl: string): string[] => {
   return links
 }
 
-/** Extract meta tags from HTML */
+/** Extract meta tags from HTML. Keys are lowercased (HTML meta attribute names are case-insensitive). */
 export const extractMetaTags = (html: string): Record<string, string> => {
   const meta: Record<string, string> = {}
   const metaRegex = /<meta[^>]+(?:name|property)=["']([^"']+)["'][^>]+content=["']([^"']+)["']/gi
   let match
 
   while ((match = metaRegex.exec(html)) !== null) {
-    meta[match[1]!] = match[2]!
+    meta[match[1]!.toLowerCase()] = match[2]!
   }
 
   // also handle the content-then-name attribute order
   const metaRegex2 = /<meta[^>]+content=["']([^"']+)["'][^>]+(?:name|property)=["']([^"']+)["']/gi
   while ((match = metaRegex2.exec(html)) !== null) {
-    meta[match[2]!] = match[1]!
+    meta[match[2]!.toLowerCase()] = match[1]!
   }
 
   return meta
@@ -61,6 +61,31 @@ export const extractJsonLd = (html: string): unknown[] => {
   }
 
   return results
+}
+
+/** Read an attribute value, matching the same quote type that opened it so quotes-within-values don't truncate */
+const readAttr = (attrs: string, name: string): string | undefined => {
+  const re = new RegExp(`\\b${name}=(?:"([^"]*)"|'([^']*)')`, "i")
+  const m = attrs.match(re)
+  if (!m) return undefined
+  return m[1] ?? m[2]
+}
+
+/** Extract <img> tags with their alt attribute (undefined when no alt is present) */
+export const extractImages = (html: string): Array<{ src: string; alt: string | undefined }> => {
+  const images: Array<{ src: string; alt: string | undefined }> = []
+  // tag boundary uses [^>]* for the attribute span; a stray '>' inside a quoted value is rare in real HTML
+  const imgRegex = /<img\b([^>]*)>/gi
+  let match
+
+  while ((match = imgRegex.exec(html)) !== null) {
+    const attrs = match[1]!
+    const src = readAttr(attrs, "src")
+    if (src === undefined) continue
+    images.push({ src, alt: readAttr(attrs, "alt") })
+  }
+
+  return images
 }
 
 /** Extract heading hierarchy from HTML */

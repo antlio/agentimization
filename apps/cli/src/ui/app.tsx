@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Box, Text } from "ink"
-import { audit, auditLocal } from "@agentimization/core"
+import { audit, auditLocal, ALL_CHECKS } from "@agentimization/core"
 import type { AuditResult, AuditEvent, CheckCategory } from "@agentimization/shared"
 import { HeroCard, dim, FRAME_INNER_FACTOR } from "./hero-card.js"
 import { ResultCard, RESULT_CARD_WIDTH } from "./result-card.js"
@@ -67,7 +67,7 @@ export const App = ({
           : await audit(target, config)
 
         if (isLocal) {
-          setNetworkSkipped(35 - res.summary.total)
+          setNetworkSkipped(ALL_CHECKS.length - res.summary.total)
         }
 
         setResult(res)
