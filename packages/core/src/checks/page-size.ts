@@ -51,6 +51,60 @@ const renderingStrategy: CheckDefinition = {
   },
 }
 
+/** Check that pages have substantial text content (>= 100 words) */
+const substantialTextContent: CheckDefinition = {
+  id: "substantial-text-content",
+  name: "Substantial Text Content",
+  category: "page-size",
+  description: "Checks for at least 100 words of readable body text",
+  weight: 0.8,
+  run: async (ctx) => {
+    const pages = ctx.sampledPages.slice(0, 10)
+    if (pages.length === 0) {
+      return {
+        id: "substantial-text-content",
+        name: "Substantial Text Content",
+        category: "page-size",
+        status: "skip",
+        message: "No pages sampled",
+      }
+    }
+
+    let withSubstantialContent = 0
+    let totalWords = 0
+
+    for (const page of pages) {
+      const text = stripHtml(page.html)
+      const words = text.split(/\s+/).filter((w) => w.length > 0).length
+      totalWords += words
+      if (words >= 100) withSubstantialContent++
+    }
+
+    const avgWords = Math.round(totalWords / pages.length)
+
+    if (withSubstantialContent === pages.length) {
+      return {
+        id: "substantial-text-content",
+        name: "Substantial Text Content",
+        category: "page-size",
+        status: "pass",
+        message: `All ${pages.length} pages have ≥100 words of body text (avg ${avgWords})`,
+        metadata: { withSubstantialContent, avgWords },
+      }
+    }
+
+    return {
+      id: "substantial-text-content",
+      name: "Substantial Text Content",
+      category: "page-size",
+      status: withSubstantialContent > 0 ? "warn" : "fail",
+      message: `${withSubstantialContent}/${pages.length} pages have ≥100 words of body text (avg ${avgWords})`,
+      suggestion: "Generative engines can't cite pages that are mostly images or short copy. Add at least 100 words of substantive text content per page.",
+      metadata: { withSubstantialContent, avgWords },
+    }
+  },
+}
+
 /** Check HTML page sizes */
 const pageSizeHtml: CheckDefinition = {
   id: "page-size-html",
@@ -205,6 +259,7 @@ const contentStartPosition: CheckDefinition = {
 
 export const pageSizeChecks: CheckDefinition[] = [
   renderingStrategy,
+  substantialTextContent,
   pageSizeHtml,
   pageSizeMarkdown,
   contentStartPosition,

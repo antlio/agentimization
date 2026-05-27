@@ -78,6 +78,35 @@ describe("auditLocal", () => {
     expect(agentsMd!.status).toBe("fail")
   })
 
+  it("runs the new GEO surface checks on good-site", async () => {
+    const result = await auditLocal(resolve(FIXTURES, "good-site"))
+
+    const metaDescription = result.checks.find((c) => c.id === "meta-description")
+    expect(metaDescription?.status).toBe("pass")
+
+    const openGraph = result.checks.find((c) => c.id === "open-graph-tags")
+    expect(openGraph?.status).toBe("pass")
+
+    const substantial = result.checks.find((c) => c.id === "substantial-text-content")
+    expect(substantial?.status).toBe("pass")
+
+    const altText = result.checks.find((c) => c.id === "image-alt-text")
+    expect(altText?.status).toBe("pass")
+  })
+
+  it("flags missing GEO surface signals on bad-site", async () => {
+    const result = await auditLocal(resolve(FIXTURES, "bad-site"))
+
+    const metaDescription = result.checks.find((c) => c.id === "meta-description")
+    expect(metaDescription?.status).toBe("fail")
+
+    const openGraph = result.checks.find((c) => c.id === "open-graph-tags")
+    expect(openGraph?.status).toBe("fail")
+
+    const substantial = result.checks.find((c) => c.id === "substantial-text-content")
+    expect(substantial?.status).toBe("fail")
+  })
+
   it("emits events when onEvent is provided", async () => {
     const events: string[] = []
 

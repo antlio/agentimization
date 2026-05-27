@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   stripHtml,
   extractHeadings,
+  extractImages,
   extractJsonLd,
   extractCodeFences,
   hasServerRenderedContent,
@@ -38,6 +39,31 @@ describe("extractHeadings", () => {
   it("strips nested tags from heading text", () => {
     const html = `<h2><a href="/x">Link Title</a></h2>`
     expect(extractHeadings(html)[0]?.text).toBe("Link Title")
+  })
+})
+
+describe("extractImages", () => {
+  it("extracts src and alt", () => {
+    const html = `<img src="/a.png" alt="Alpha"><img src="/b.png" alt="">`
+    expect(extractImages(html)).toEqual([
+      { src: "/a.png", alt: "Alpha" },
+      { src: "/b.png", alt: "" },
+    ])
+  })
+
+  it("returns undefined alt when missing", () => {
+    const html = `<img src="/x.png">`
+    expect(extractImages(html)).toEqual([{ src: "/x.png", alt: undefined }])
+  })
+
+  it("skips img tags with no src", () => {
+    const html = `<img alt="no source"><img src="/y.png" alt="ok">`
+    expect(extractImages(html)).toEqual([{ src: "/y.png", alt: "ok" }])
+  })
+
+  it("preserves apostrophes inside double-quoted alt", () => {
+    const html = `<img src="/x.png" alt="don't stop">`
+    expect(extractImages(html)).toEqual([{ src: "/x.png", alt: "don't stop" }])
   })
 })
 

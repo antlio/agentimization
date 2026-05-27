@@ -394,6 +394,219 @@ const faqSchema: CheckDefinition = {
   },
 }
 
+/** Check meta description presence and length */
+const metaDescription: CheckDefinition = {
+  id: "meta-description",
+  name: "Meta Description",
+  category: "geo-signals",
+  description: "Checks for a meta description between 50 and 160 characters",
+  weight: 0.5,
+  run: async (ctx) => {
+    const pages = ctx.sampledPages.slice(0, 10)
+    if (pages.length === 0) {
+      return {
+        id: "meta-description",
+        name: "Meta Description",
+        category: "geo-signals",
+        status: "skip",
+        message: "No pages sampled",
+      }
+    }
+
+    let withGoodDescription = 0
+    let missing = 0
+    let tooShort = 0
+    let tooLong = 0
+
+    for (const page of pages) {
+      const meta = extractMetaTags(page.html)
+      // og:description is a sibling signal; the open-graph-tags check covers it. This check is strictly about <meta name="description">.
+      const description = meta["description"]?.trim()
+      if (!description) {
+        missing++
+        continue
+      }
+
+      const len = description.length
+      if (len >= 50 && len <= 160) withGoodDescription++
+      else if (len < 50) tooShort++
+      else tooLong++
+    }
+
+    if (withGoodDescription === pages.length) {
+      return {
+        id: "meta-description",
+        name: "Meta Description",
+        category: "geo-signals",
+        status: "pass",
+        message: `All ${pages.length} pages have a meta description between 50–160 characters`,
+        metadata: { withGoodDescription },
+      }
+    }
+
+    if (missing === pages.length) {
+      return {
+        id: "meta-description",
+        name: "Meta Description",
+        category: "geo-signals",
+        status: "fail",
+        message: "No meta description found on any sampled page",
+        suggestion: "Add a <meta name=\"description\"> between 50 and 160 characters to every page. Generative engines quote meta descriptions when summarizing your content.",
+      }
+    }
+
+    const detail = [
+      missing > 0 ? `${missing} missing` : null,
+      tooShort > 0 ? `${tooShort} too short` : null,
+      tooLong > 0 ? `${tooLong} too long` : null,
+    ].filter(Boolean).join(" · ")
+
+    return {
+      id: "meta-description",
+      name: "Meta Description",
+      category: "geo-signals",
+      status: missing >= pages.length / 2 ? "fail" : "warn",
+      message: `${withGoodDescription}/${pages.length} pages have meta descriptions in the 50–160 char range${detail ? ` · ${detail}` : ""}`,
+      suggestion: missing > 0
+        ? "Add a <meta name=\"description\"> between 50 and 160 characters to every page. Some pages are missing it entirely."
+        : "Aim for 50–160 characters. Shorter descriptions lack context for AI; longer ones get truncated.",
+      metadata: { withGoodDescription, missing, tooShort, tooLong },
+    }
+  },
+}
+
+/** Check for Open Graph tags */
+const openGraphTags: CheckDefinition = {
+  id: "open-graph-tags",
+  name: "Open Graph Tags",
+  category: "geo-signals",
+  description: "Checks for og:title, og:description, og:image, and og:url",
+  weight: 0.5,
+  run: async (ctx) => {
+    const pages = ctx.sampledPages.slice(0, 10)
+    if (pages.length === 0) {
+      return {
+        id: "open-graph-tags",
+        name: "Open Graph Tags",
+        category: "geo-signals",
+        status: "skip",
+        message: "No pages sampled",
+      }
+    }
+
+    const required = ["og:title", "og:description", "og:image", "og:url"] as const
+    let fullCoverage = 0
+    let partialCoverage = 0
+    const missingCounts: Record<string, number> = { "og:title": 0, "og:description": 0, "og:image": 0, "og:url": 0 }
+
+    for (const page of pages) {
+      const meta = extractMetaTags(page.html)
+      const missing = required.filter((tag) => !meta[tag])
+
+      for (const tag of missing) missingCounts[tag] = (missingCounts[tag] ?? 0) + 1
+
+      if (missing.length === 0) fullCoverage++
+      else if (missing.length < required.length) partialCoverage++
+    }
+
+    if (fullCoverage === pages.length) {
+      return {
+        id: "open-graph-tags",
+        name: "Open Graph Tags",
+        category: "geo-signals",
+        status: "pass",
+        message: `All ${pages.length} pages have complete Open Graph tags`,
+      }
+    }
+
+    const mostMissing = Object.entries(missingCounts)
+      .filter(([, n]) => n > 0)
+      .sort(([, a], [, b]) => b - a)
+      .map(([tag]) => tag)
+
+    const noneCovered = pages.length - fullCoverage - partialCoverage
+
+    return {
+      id: "open-graph-tags",
+      name: "Open Graph Tags",
+      category: "geo-signals",
+      status: fullCoverage + partialCoverage === 0 ? "fail" : "warn",
+      message: `${fullCoverage}/${pages.length} pages have complete Open Graph tags${partialCoverage > 0 ? ` · ${partialCoverage} partial` : ""}${noneCovered > 0 ? ` · ${noneCovered} with none` : ""}${mostMissing.length > 0 ? ` · most often missing: ${mostMissing.slice(0, 2).join(", ")}` : ""}`,
+      suggestion: "Add og:title, og:description, og:image, and og:url to every page. AI engines and link previews use these to render rich citations of your content.",
+      metadata: { fullCoverage, partialCoverage, noneCovered, missingCounts },
+    }
+  },
+}
+
+/** Check for external citation links (outbound links) */
+const externalCitations: CheckDefinition = {
+  id: "external-citations",
+  name: "External Citations",
+  category: "geo-signals",
+  description: "Checks for at least 2 outbound links to external sources per page",
+  weight: 0.5,
+  run: async (ctx) => {
+    if (ctx.mode === "local") {
+      return {
+        id: "external-citations",
+        name: "External Citations",
+        category: "geo-signals",
+        status: "info",
+        message: "External link detection requires a live origin to compare against",
+      }
+    }
+
+    const pages = ctx.sampledPages.slice(0, 10)
+    if (pages.length === 0) {
+      return {
+        id: "external-citations",
+        name: "External Citations",
+        category: "geo-signals",
+        status: "skip",
+        message: "No pages sampled",
+      }
+    }
+
+    const origin = ctx.baseUrl.origin
+    let pagesWithCitations = 0
+    let totalExternal = 0
+
+    for (const page of pages) {
+      // extractLinks already returned absolute hrefs (each was parsed with new URL during extraction); re-parse is safe
+      const links = extractLinks(page.html, origin)
+      const external = links.filter((l) => {
+        const u = new URL(l)
+        return u.protocol.startsWith("http") && u.origin !== origin
+      })
+      totalExternal += external.length
+      if (external.length >= 2) pagesWithCitations++
+    }
+
+    const avgExternal = Math.round(totalExternal / pages.length)
+
+    if (pagesWithCitations >= pages.length * 0.7) {
+      return {
+        id: "external-citations",
+        name: "External Citations",
+        category: "geo-signals",
+        status: "pass",
+        message: `${pagesWithCitations}/${pages.length} pages have ≥2 outbound links (avg ${avgExternal}/page)`,
+        metadata: { pagesWithCitations, avgExternal },
+      }
+    }
+
+    return {
+      id: "external-citations",
+      name: "External Citations",
+      category: "geo-signals",
+      status: pagesWithCitations > 0 ? "warn" : "fail",
+      message: `Only ${pagesWithCitations}/${pages.length} pages have ≥2 outbound links (avg ${avgExternal}/page)`,
+      suggestion: "Add at least 2 outbound links to authoritative external sources per page. Citing sources signals credibility to generative engines, which weigh outbound links when deciding what to cite.",
+      metadata: { pagesWithCitations, avgExternal },
+    }
+  },
+}
+
 /** Check canonical URL consistency */
 const canonicalUrlConsistency: CheckDefinition = {
   id: "canonical-url-consistency",
@@ -474,5 +687,8 @@ export const geoSignalChecks: CheckDefinition[] = [
   contentFreshness,
   eeatSignals,
   faqSchema,
+  metaDescription,
+  openGraphTags,
+  externalCitations,
   canonicalUrlConsistency,
 ]
