@@ -19,14 +19,20 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      # build in dependency order: core/cli resolve @agentimization/* to the
+      # deps' emitted dist/*.d.ts, so shared must compile before core before cli
+      # (bun run --filter '*' does not guarantee this ordering)
       - name: Build
         run: |
           bunx tsc -p packages/shared/tsconfig.json
           bunx tsc -p packages/core/tsconfig.json
           bunx tsc -p apps/cli/tsconfig.json
 
+      # root test script fans out to every workspace; the cli vitest suite is
+      # source-only and core's vitest aliases shared to source, so test needs
+      # no ordered build
       - name: Test
-        run: cd packages/core && bunx vitest run
+        run: bun run test
 
       - name: Typecheck
         run: |
