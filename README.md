@@ -2,14 +2,12 @@
 
 [![npm version](https://img.shields.io/npm/v/agentimization?style=flat-square&color=blue)](https://www.npmjs.com/package/agentimization)
 
-```text
-╭───────────────────────────────────────────────╮
-│ ▓░▒▓░░▒░▓▒░▓▓░▒░▓░░▒▓▒░▓░░▓▒░▓░▒░▓░░▒▓░░      │
-│ ░▓▒░▓░░▒▓▒░▓░░▒▓▓░▒░▓▒░░▓▒░▓░▒░░▓▒░░▓░▒       │
-│ ▓░▒▓░░▒▓▒░░▓░▒▓▒░░▓░░▓▒░▓░▒░░▓▒░▓░░▒▓░        │
-│ ░▒▓░▒░▓▒░░▓░▒▓░░▒▓▒░░▓░▒▓░░▒▓░ agentimization │
-╰───────────────────────────────────────────────╯
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/antlio/agentimization/main/assets/hero-loading-dark.svg">
+    <img src="https://raw.githubusercontent.com/antlio/agentimization/main/assets/hero-loading-light.svg" alt="agentimization" width="620">
+  </picture>
+</p>
 
 geo audit for agent-ready websites and projects.
 
