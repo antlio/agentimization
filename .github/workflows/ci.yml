@@ -19,17 +19,14 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      # root scripts fan out to every workspace via `bun run --filter '*'`,
+      # so the cli vitest suite runs alongside core (and stays correct as
+      # packages are added)
       - name: Build
-        run: |
-          bunx tsc -p packages/shared/tsconfig.json
-          bunx tsc -p packages/core/tsconfig.json
-          bunx tsc -p apps/cli/tsconfig.json
+        run: bun run build
 
       - name: Test
-        run: cd packages/core && bunx vitest run
+        run: bun run test
 
       - name: Typecheck
-        run: |
-          bunx tsc -p packages/shared/tsconfig.json --noEmit
-          bunx tsc -p packages/core/tsconfig.json --noEmit
-          bunx tsc -p apps/cli/tsconfig.json --noEmit
+        run: bun run typecheck

@@ -18,9 +18,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # mint a token for the agentimization GitHub App so the release pr and
+      # version commit are authored by the bot instead of github-actions[bot]
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.AGENTIMIZATION_APP_ID }}
+          private-key: ${{ secrets.AGENTIMIZATION_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@v4
         with:
@@ -58,5 +67,7 @@ jobs:
           version: npx -y changeset version
           commit: "chore: version packages"
           title: "chore: version packages"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # author the version commit + pr as the agentimization app
+          github-token: ${{ steps.app-token.outputs.token }}
+          setupGitUser: false
+          commitMode: "github-api"
