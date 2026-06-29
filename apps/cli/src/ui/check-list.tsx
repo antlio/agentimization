@@ -25,10 +25,12 @@ const CheckLine = ({ check, loaderColor }: { check: CheckState; loaderColor?: st
           <Text color={toInkColor(color)}>{icon}</Text>
           <Text> {r.id}</Text>
         </Text>
-        <Text dimColor>    {r.message}</Text>
-        {showSuggestion ? (
-          <Text color={toInkColor("oklch(0.858 0.109 142.7)")}>    → {r.suggestion}</Text>
-        ) : null}
+        <Box flexDirection="column" paddingLeft={2}>
+          <Text dimColor>{r.message}</Text>
+          {showSuggestion ? (
+            <Text color={toInkColor("oklch(0.858 0.109 142.7)")}>→ {r.suggestion}</Text>
+          ) : null}
+        </Box>
       </Box>
     )
   }

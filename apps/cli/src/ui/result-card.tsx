@@ -14,8 +14,7 @@ const SCORE_PAIRS = {
 }
 
 export const RESULT_CARD_WIDTH = 46
-const RESULT_BAR_WIDTH = RESULT_CARD_WIDTH - 4
-const SCORE_FIELD_ROWS = 2
+const SCORE_FIELD_ROWS = 1
 const SCORE_GLYPHS = ["░", "▒", "▓", "█"]
 
 const scoreCell = (row: number, col: number): { glyph: string; bright: boolean } => {
@@ -30,17 +29,20 @@ const ScoreField = ({
   passWidth,
   warnWidth,
   failWidth,
+  barWidth,
 }: {
   passWidth: number
   warnWidth: number
   failWidth: number
+  barWidth: number
 }) => {
+  const emptyWidth = Math.max(0, barWidth - passWidth - warnWidth - failWidth)
   const colorAtCol = (col: number, bright: boolean): string => {
     const pair =
-      col < passWidth ? SCORE_PAIRS.pass
-      : col < passWidth + warnWidth ? SCORE_PAIRS.warn
-      : col < passWidth + warnWidth + failWidth ? SCORE_PAIRS.fail
-      : SCORE_PAIRS.empty
+      col < emptyWidth ? SCORE_PAIRS.empty
+      : col < emptyWidth + passWidth ? SCORE_PAIRS.pass
+      : col < emptyWidth + passWidth + warnWidth ? SCORE_PAIRS.warn
+      : SCORE_PAIRS.fail
     return bright ? pair.bright : pair.dim
   }
 
@@ -50,7 +52,7 @@ const ScoreField = ({
         const segments: { text: string; color: string }[] = []
         let current: { text: string; color: string } | null = null
 
-        for (let c = 0; c < RESULT_BAR_WIDTH; c++) {
+        for (let c = 0; c < barWidth; c++) {
           const cell = scoreCell(r, c)
           const color = colorAtCol(c, cell.bright)
           if (current && current.color === color) {
@@ -76,17 +78,27 @@ const ScoreField = ({
   )
 }
 
-export const ResultCard = ({ result, target }: { result: AuditResult; target: string }) => {
+export const ResultCard = ({
+  result,
+  target,
+  width = RESULT_CARD_WIDTH,
+}: {
+  result: AuditResult
+  target: string
+  width?: number
+}) => {
   const { grade, overall_score, summary, latency_ms } = result
   const gc = GRADE_COLORS[grade] ?? "red"
 
+  const barWidth = width - 4
   const total = summary.total || 1
-  const passWidth = Math.max(Math.round((summary.passed / total) * RESULT_BAR_WIDTH), summary.passed > 0 ? 1 : 0)
-  const warnWidth = Math.max(Math.round((summary.warned / total) * RESULT_BAR_WIDTH), summary.warned > 0 ? 1 : 0)
-  const failWidth = Math.max(Math.round((summary.failed / total) * RESULT_BAR_WIDTH), summary.failed > 0 ? 1 : 0)
+  const passWidth = Math.max(Math.round((summary.passed / total) * barWidth), summary.passed > 0 ? 1 : 0)
+  const warnWidth = Math.max(Math.round((summary.warned / total) * barWidth), summary.warned > 0 ? 1 : 0)
+  const failWidth = Math.max(Math.round((summary.failed / total) * barWidth), summary.failed > 0 ? 1 : 0)
 
   const seconds = (latency_ms / 1000).toFixed(1)
-  const targetMax = RESULT_BAR_WIDTH
+  const headerChrome = `${grade} ${overall_score}/100`.length + 3 + 3 + `${seconds}s`.length
+  const targetMax = Math.max(8, barWidth - headerChrome)
   const targetLabel = target.length <= targetMax ? target : target.slice(0, targetMax - 1) + "…"
 
   return (
@@ -96,31 +108,36 @@ export const ResultCard = ({ result, target }: { result: AuditResult; target: st
       borderStyle="round"
       borderColor={dim(gc, FRAME_INNER_FACTOR)}
       paddingX={1}
-      width={RESULT_CARD_WIDTH}
+      width={width}
     >
       <Box>
         <Text color={toInkColor(gc)}>{grade}</Text>
         <Text> {overall_score}/100</Text>
+        <Text dimColor>   {targetLabel}</Text>
         <Text dimColor>   {seconds}s</Text>
       </Box>
-      <Text>{targetLabel}</Text>
 
       <Box marginTop={1}>
         <ScoreField
           passWidth={passWidth}
           warnWidth={warnWidth}
           failWidth={failWidth}
+          barWidth={barWidth}
         />
       </Box>
 
       <Box marginTop={1}>
+        {summary.skipped > 0 ? (
+          <>
+            <Text dimColor>{STATUS_ICONS.skip} {summary.skipped}</Text>
+            <Text dimColor>   </Text>
+          </>
+        ) : null}
         <Text color={toInkColor(SCORE_PAIRS.pass.bright)}>{STATUS_ICONS.pass} {summary.passed}</Text>
         <Text dimColor>   </Text>
         <Text color={toInkColor(SCORE_PAIRS.warn.bright)}>{STATUS_ICONS.warn} {summary.warned}</Text>
         <Text dimColor>   </Text>
         <Text color={toInkColor(SCORE_PAIRS.fail.bright)}>{STATUS_ICONS.fail} {summary.failed}</Text>
-        <Text dimColor>   </Text>
-        <Text dimColor>{STATUS_ICONS.skip} {summary.skipped}</Text>
       </Box>
     </Box>
   )
