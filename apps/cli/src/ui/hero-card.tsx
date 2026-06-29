@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { Box, Text } from "ink"
 import type { Phase } from "./tokens.js"
 import { toInkColor } from "./color.js"
+import { useMountEffect } from "../hooks/use-mount-effect.js"
 
 interface HeroCardProps {
   target: string
@@ -12,11 +13,11 @@ interface HeroCardProps {
   grade?: string
   score?: number
   gradeColor?: string
+  width?: number
 }
 
-const CARD_WIDTH = 46
+const DEFAULT_CARD_WIDTH = 46
 const PATTERN_ROWS = 4
-const PATTERN_COLS = CARD_WIDTH - 4
 const PATTERN_GLYPHS = ["░", "▒", "▓", "█"]
 
 export const ACCENT_BY_PHASE: Record<Phase, string> = {
@@ -117,10 +118,10 @@ export const MiniLoader = ({
 }) => {
   const [frame, setFrame] = useState(0)
 
-  useEffect(() => {
+  useMountEffect(() => {
     const timer = setInterval(() => setFrame((f) => (f + 1) % 1000), intervalMs)
     return () => clearInterval(timer)
-  }, [intervalMs])
+  })
 
   const segments: { text: string; color: string }[] = []
   let current: { text: string; color: string } | null = null
@@ -162,10 +163,12 @@ interface Overlay {
 const Pattern = ({
   accent,
   frame,
+  cols,
   overlay,
 }: {
   accent: string
   frame: number
+  cols: number
   overlay?: Overlay
 }) => {
   const overlayStart = overlay ? overlay.col : -1
@@ -177,7 +180,7 @@ const Pattern = ({
 
     const isOverlayRow = overlay && r === overlay.row
 
-    for (let c = 0; c < PATTERN_COLS; c++) {
+    for (let c = 0; c < cols; c++) {
       let char: string
       let color: string
 
@@ -256,13 +259,13 @@ const shimmerColor = (
 const Shimmer = ({ text, accent }: { text: string; accent: string }) => {
   const [head, setHead] = useState(0)
 
-  useEffect(() => {
+  useMountEffect(() => {
     const cycleLen = text.length + SHIMMER_GAP
     const timer = setInterval(() => {
       setHead((h) => (h + 1) % cycleLen)
     }, SHIMMER_INTERVAL_MS)
     return () => clearInterval(timer)
-  }, [text.length])
+  })
 
   const cycleLen = text.length + SHIMMER_GAP
   const segments: { text: string; color: string }[] = []
@@ -291,6 +294,21 @@ const Shimmer = ({ text, accent }: { text: string; accent: string }) => {
   )
 }
 
+const AnimatedPattern = ({ accent, cols, overlay }: {
+  accent: string
+  cols: number
+  overlay?: Overlay
+}) => {
+  const [frame, setFrame] = useState(0)
+
+  useMountEffect(() => {
+    const timer = setInterval(() => setFrame((f) => (f + 1) % 1000), 120)
+    return () => clearInterval(timer)
+  })
+
+  return <Pattern accent={accent} frame={frame} cols={cols} overlay={overlay} />
+}
+
 export const HeroCard = ({
   target,
   isLocal,
@@ -300,19 +318,20 @@ export const HeroCard = ({
   grade,
   score,
   gradeColor,
+  width = DEFAULT_CARD_WIDTH,
 }: HeroCardProps) => {
-  const [frame, setFrame] = useState(0)
-
-  useEffect(() => {
-    if (phase === "done" || phase === "error") return
-    const timer = setInterval(() => setFrame((f) => (f + 1) % 1000), 120)
-    return () => clearInterval(timer)
-  }, [phase])
-
+  const cols = width - 4
   const accent = phase === "done" && gradeColor ? gradeColor : ACCENT_BY_PHASE[phase]
   const status = STATUS_BY_PHASE(phase, isLocal, checksDone, checksTotal)
-  const targetLabel = truncate(target, PATTERN_COLS)
+  const targetLabel = truncate(target, cols)
   const showGrade = phase === "done" && grade !== undefined && score !== undefined
+  const isActive = phase !== "done" && phase !== "error"
+  const overlay: Overlay = {
+    row: PATTERN_ROWS - 1,
+    col: cols - "agentimization".length - 1,
+    chars: Array.from(" agentimization"),
+    color: accent,
+  }
 
   return (
     <Box
@@ -320,18 +339,13 @@ export const HeroCard = ({
       borderStyle="round"
       borderColor={dim(accent, FRAME_INNER_FACTOR)}
       paddingX={1}
-      width={CARD_WIDTH}
+      width={width}
     >
-      <Pattern
-        accent={accent}
-        frame={frame}
-        overlay={{
-          row: PATTERN_ROWS - 1,
-          col: PATTERN_COLS - "agentimization".length - 1,
-          chars: Array.from(" agentimization"),
-          color: accent,
-        }}
-      />
+      {isActive ? (
+        <AnimatedPattern accent={accent} cols={cols} overlay={overlay} />
+      ) : (
+        <Pattern accent={accent} frame={0} cols={cols} overlay={overlay} />
+      )}
 
       <Box marginTop={1}>
         <Text>{targetLabel}</Text>
@@ -347,7 +361,7 @@ export const HeroCard = ({
             <Text dimColor>   {status}</Text>
           </>
         ) : (
-          <Shimmer text={status} accent={accent} />
+          <Shimmer key={status} text={status} accent={accent} />
         )}
       </Box>
     </Box>
