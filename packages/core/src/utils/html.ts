@@ -1,4 +1,4 @@
-/** Lightweight HTML parsing utilities — no heavy DOM dependencies */
+/** Lightweight HTML parsing utilities (no heavy DOM dependencies) */
 
 /** Extract text content from HTML, stripping all tags */
 export const stripHtml = (html: string): string =>
@@ -8,6 +8,19 @@ export const stripHtml = (html: string): string =>
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim()
+
+/** Extract the raw target URLs from markdown links `[text](url)` */
+export const extractMarkdownLinks = (markdown: string): string[] => {
+  const links: string[] = []
+  const linkRegex = /\[.+?\]\(([^)]+)\)/g
+  let match
+
+  while ((match = linkRegex.exec(markdown)) !== null) {
+    links.push(match[1]!)
+  }
+
+  return links
+}
 
 /** Extract all links from HTML */
 export const extractLinks = (html: string, baseUrl: string): string[] => {

@@ -1,4 +1,5 @@
-import type { CheckDefinition, CheckResult, AuditContext } from "@agentimization/shared"
+import type { CheckDefinition } from "@agentimization/shared"
+import { extractMarkdownLinks } from "../utils/html.js"
 
 /** Check if llms.txt exists */
 const llmsTxtExists: CheckDefinition = {
@@ -44,7 +45,7 @@ const llmsTxtValid: CheckDefinition = {
         name: "llms.txt Valid Structure",
         category: "content-discoverability",
         status: "skip",
-        message: "Skipped — no llms.txt found",
+        message: "Skipped: no llms.txt found",
       }
     }
 
@@ -98,7 +99,7 @@ const llmsTxtSize: CheckDefinition = {
         name: "llms.txt Size",
         category: "content-discoverability",
         status: "skip",
-        message: "Skipped — no llms.txt found",
+        message: "Skipped: no llms.txt found",
       }
     }
 
@@ -141,7 +142,7 @@ const llmsTxtFreshness: CheckDefinition = {
         name: "llms.txt Coverage",
         category: "content-discoverability",
         status: "skip",
-        message: "Skipped — no llms.txt found",
+        message: "Skipped: no llms.txt found",
       }
     }
 
@@ -178,11 +179,9 @@ const llmsTxtFreshness: CheckDefinition = {
       }
     }
 
-    const linkRegex = /\[.+?\]\(([^)]+)\)/g
     const llmsKeys = new Set<string>()
-    let match
-    while ((match = linkRegex.exec(ctx.llmsTxt)) !== null) {
-      const k = keyFor(match[1]!)
+    for (const link of extractMarkdownLinks(ctx.llmsTxt)) {
+      const k = keyFor(link)
       if (k) llmsKeys.add(k)
     }
 
@@ -234,7 +233,7 @@ const llmsTxtFreshness: CheckDefinition = {
       message: `${message}${missingFromLlms > 0 ? ` · ${missingFromLlms} sitemap pages not in llms.txt` : ""}${staleInLlms > 0 ? ` · ${staleInLlms} llms.txt links not in sitemap` : ""}`,
       suggestion: coveragePct < freshnessPct
         ? "Add missing sitemap pages to llms.txt to improve AI agent discoverability."
-        : "Some llms.txt links aren't in the sitemap — they may be stale or your sitemap may be incomplete.",
+        : "Some llms.txt links aren't in the sitemap. They may be stale or your sitemap may be incomplete.",
       metadata: {
         coveragePct, freshnessPct,
         llmsCount: llmsKeys.size, sitemapCount: sitemapKeys.size,
@@ -259,16 +258,14 @@ const llmsTxtLinksResolve: CheckDefinition = {
         name: "llms.txt Links Resolve",
         category: "content-discoverability",
         status: "skip",
-        message: "Skipped — no llms.txt found",
+        message: "Skipped: no llms.txt found",
       }
     }
 
-    const linkRegex = /\[.+?\]\(([^)]+)\)/g
     const urls: string[] = []
-    let match
-    while ((match = linkRegex.exec(ctx.llmsTxt)) !== null) {
+    for (const link of extractMarkdownLinks(ctx.llmsTxt)) {
       try {
-        const resolved = new URL(match[1]!, ctx.baseUrl.origin)
+        const resolved = new URL(link, ctx.baseUrl.origin)
         if (resolved.origin === ctx.baseUrl.origin) {
           urls.push(resolved.href)
         }
@@ -315,7 +312,7 @@ const llmsTxtLinksResolve: CheckDefinition = {
       name: "llms.txt Links Resolve",
       category: "content-discoverability",
       status: "fail",
-      message: `${resolved}/${sampled.length} sampled links resolve — ${sampled.length - resolved} broken`,
+      message: `${resolved}/${sampled.length} sampled links resolve, ${sampled.length - resolved} broken`,
       suggestion: "Fix broken links in llms.txt. AI agents will fail to fetch these pages.",
       metadata: { resolved, sampled: sampled.length, total: urls.length },
     }
@@ -336,16 +333,11 @@ const llmsTxtLinksMarkdown: CheckDefinition = {
         name: "llms.txt Links Markdown",
         category: "content-discoverability",
         status: "skip",
-        message: "Skipped — no llms.txt found",
+        message: "Skipped: no llms.txt found",
       }
     }
 
-    const linkRegex = /\[.+?\]\(([^)]+)\)/g
-    const urls: string[] = []
-    let m
-    while ((m = linkRegex.exec(ctx.llmsTxt)) !== null) {
-      urls.push(m[1]!)
-    }
+    const urls = extractMarkdownLinks(ctx.llmsTxt)
 
     if (urls.length === 0) {
       return {
@@ -399,7 +391,7 @@ const llmsTxtLinksMarkdown: CheckDefinition = {
       category: "content-discoverability",
       status: "fail",
       message: `Only ${mdLinks}/${urls.length} llms.txt links point to .md URLs (${pct}%)`,
-      suggestion: "Most llms.txt links are HTML-only. Serve a markdown version at .md URLs and link to those — agents get cleaner content and fewer parse failures.",
+      suggestion: "Most llms.txt links are HTML-only. Serve a markdown version at .md URLs and link to those, so agents get cleaner content and fewer parse failures.",
       metadata: { mdLinks, total: urls.length, pct },
     }
   },
@@ -507,6 +499,205 @@ const robotsTxtAgentRules: CheckDefinition = {
   },
 }
 
+/** Check if llms-full.txt exists */
+const llmsFullExists: CheckDefinition = {
+  id: "llms-full-exists",
+  name: "llms-full.txt Exists",
+  category: "content-discoverability",
+  description: "Checks if llms-full.txt (the complete-content variant) is present at the site root",
+  weight: 0.4,
+  run: async (ctx) => {
+    if (ctx.llmsFullTxt) {
+      return {
+        id: "llms-full-exists",
+        name: "llms-full.txt Exists",
+        category: "content-discoverability",
+        status: "pass",
+        message: ctx.mode === "local"
+          ? "llms-full.txt found in project root"
+          : `llms-full.txt found at ${ctx.baseUrl.origin}/llms-full.txt`,
+      }
+    }
+    return {
+      id: "llms-full-exists",
+      name: "llms-full.txt Exists",
+      category: "content-discoverability",
+      status: "info",
+      message: "No llms-full.txt found (optional)",
+      suggestion: "If your llms.txt is large or you want agents to get full content in one fetch, add a /llms-full.txt containing the concatenated markdown of your docs.",
+    }
+  },
+}
+
+/** Check if llms-full.txt has recognizable markdown structure */
+const llmsFullValid: CheckDefinition = {
+  id: "llms-full-valid",
+  name: "llms-full.txt Valid Structure",
+  category: "content-discoverability",
+  description: "Checks if llms-full.txt has recognizable markdown structure (headings, content)",
+  weight: 0.4,
+  run: async (ctx) => {
+    if (!ctx.llmsFullTxt) {
+      return {
+        id: "llms-full-valid",
+        name: "llms-full.txt Valid Structure",
+        category: "content-discoverability",
+        status: "skip",
+        message: "Skipped: no llms-full.txt found",
+      }
+    }
+
+    const hasHeadings = /^#{1,3}\s+/m.test(ctx.llmsFullTxt)
+    const hasProse = ctx.llmsFullTxt.length > 600
+
+    if (hasHeadings && hasProse) {
+      return {
+        id: "llms-full-valid",
+        name: "llms-full.txt Valid Structure",
+        category: "content-discoverability",
+        status: "pass",
+        message: "llms-full.txt has recognizable markdown structure",
+      }
+    }
+
+    return {
+      id: "llms-full-valid",
+      name: "llms-full.txt Valid Structure",
+      category: "content-discoverability",
+      status: "warn",
+      message: `llms-full.txt found but ${!hasHeadings ? "has no markdown headings" : "has little content"}`,
+      suggestion: "llms-full.txt should contain the full markdown content of your docs, with headings, so agents can parse it.",
+    }
+  },
+}
+
+/** Check llms-full.txt size is within the expected range */
+const llmsFullSize: CheckDefinition = {
+  id: "llms-full-size",
+  name: "llms-full.txt Size",
+  category: "content-discoverability",
+  description: "Checks if llms-full.txt size is within the expected range (substantial but not excessive)",
+  weight: 0.3,
+  run: async (ctx) => {
+    if (!ctx.llmsFullTxt) {
+      return {
+        id: "llms-full-size",
+        name: "llms-full.txt Size",
+        category: "content-discoverability",
+        status: "skip",
+        message: "Skipped: no llms-full.txt found",
+      }
+    }
+
+    const size = ctx.llmsFullTxt.length
+    // llms-full.txt is meant to hold full content: too small means it's not doing its job,
+    // too large risks blowing past agent context windows.
+    const MIN = 10_000
+    const MAX = 5_000_000
+
+    if (size >= MIN && size <= MAX) {
+      return {
+        id: "llms-full-size",
+        name: "llms-full.txt Size",
+        category: "content-discoverability",
+        status: "pass",
+        message: `llms-full.txt is ${size.toLocaleString()} characters (within expected range)`,
+        metadata: { size },
+      }
+    }
+
+    return {
+      id: "llms-full-size",
+      name: "llms-full.txt Size",
+      category: "content-discoverability",
+      status: "warn",
+      message: size < MIN
+        ? `llms-full.txt is only ${size.toLocaleString()} characters, smaller than expected for a full-content file`
+        : `llms-full.txt is ${size.toLocaleString()} characters, large enough to overflow agent context windows`,
+      suggestion: size < MIN
+        ? "llms-full.txt should contain your complete documentation. If it's this small, llms.txt alone may be enough."
+        : "Consider trimming llms-full.txt or splitting content so agents can fetch what fits their context window.",
+      metadata: { size },
+    }
+  },
+}
+
+/** Check if llms-full.txt links resolve */
+const llmsFullLinksResolve: CheckDefinition = {
+  id: "llms-full-links-resolve",
+  name: "llms-full.txt Links Resolve",
+  category: "content-discoverability",
+  description: "Checks if links in llms-full.txt return 200 OK",
+  weight: 0.4,
+  requiresNetwork: true,
+  run: async (ctx) => {
+    if (!ctx.llmsFullTxt) {
+      return {
+        id: "llms-full-links-resolve",
+        name: "llms-full.txt Links Resolve",
+        category: "content-discoverability",
+        status: "skip",
+        message: "Skipped: no llms-full.txt found",
+      }
+    }
+
+    const urls: string[] = []
+    for (const link of extractMarkdownLinks(ctx.llmsFullTxt)) {
+      try {
+        const resolved = new URL(link, ctx.baseUrl.origin)
+        if (resolved.origin === ctx.baseUrl.origin) {
+          urls.push(resolved.href)
+        }
+      } catch {
+        // skip
+      }
+    }
+
+    if (urls.length === 0) {
+      return {
+        id: "llms-full-links-resolve",
+        name: "llms-full.txt Links Resolve",
+        category: "content-discoverability",
+        status: "info",
+        message: "No same-origin links found in llms-full.txt",
+      }
+    }
+
+    const sampled = urls.slice(0, 10)
+    const results = await Promise.allSettled(
+      sampled.map(async (url) => {
+        const resp = await fetch(url, { method: "HEAD", redirect: "follow" })
+        return { url, status: resp.status }
+      }),
+    )
+
+    const resolved = results.filter(
+      (r) => r.status === "fulfilled" && r.value.status >= 200 && r.value.status < 400,
+    ).length
+
+    if (resolved === sampled.length) {
+      return {
+        id: "llms-full-links-resolve",
+        name: "llms-full.txt Links Resolve",
+        category: "content-discoverability",
+        status: "pass",
+        message: `All ${resolved} sampled same-origin links resolve (${urls.length} total links)`,
+        metadata: { resolved, sampled: sampled.length, total: urls.length },
+      }
+    }
+
+    return {
+      id: "llms-full-links-resolve",
+      name: "llms-full.txt Links Resolve",
+      category: "content-discoverability",
+      status: "fail",
+      message: `${resolved}/${sampled.length} sampled links resolve, ${sampled.length - resolved} broken`,
+      suggestion: "Fix broken links in llms-full.txt. AI agents will fail to fetch these pages.",
+      metadata: { resolved, sampled: sampled.length, total: urls.length },
+    }
+  },
+}
+
 export const contentDiscoverabilityChecks: CheckDefinition[] = [
   llmsTxtExists,
   llmsTxtValid,
@@ -514,6 +705,10 @@ export const contentDiscoverabilityChecks: CheckDefinition[] = [
   llmsTxtFreshness,
   llmsTxtLinksResolve,
   llmsTxtLinksMarkdown,
+  llmsFullExists,
+  llmsFullValid,
+  llmsFullSize,
+  llmsFullLinksResolve,
   sitemapExists,
   robotsTxtAgentRules,
 ]
