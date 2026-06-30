@@ -78,7 +78,7 @@ const buildRemoteContext = async (
 
   const agentsMd = undefined // remote mode: not applicable, the check skips itself
 
-  const sitemapUrls = sitemapXml ? parseSitemapUrls(sitemapXml) : []
+  let sitemapUrls = sitemapXml ? parseSitemapUrls(sitemapXml) : []
 
   if (!sitemapXml && robotsTxt) {
     const sitemapMatch = robotsTxt.match(/Sitemap:\s*(.+)/i)
@@ -90,11 +90,36 @@ const buildRemoteContext = async (
     }
   }
 
+  // sitemap index lists nested sitemaps
+  const isSitemapIndex = (sitemapXml ?? "").includes("<sitemapindex")
+  if (isSitemapIndex && sitemapUrls.length > 0) {
+    const nested = await Promise.allSettled(
+      sitemapUrls.slice(0, 20).map((u) => fetchText(u, config)),
+    )
+    sitemapUrls = nested.flatMap((r) =>
+      r.status === "fulfilled" && r.value?.statusCode === 200
+        ? parseSitemapUrls(r.value.text)
+        : [],
+    )
+  }
+
   let pagesToSample: string[] = []
 
   if (sitemapUrls.length > 0) {
-    const shuffled = [...sitemapUrls].sort(() => Math.random() - 0.5)
-    pagesToSample = shuffled.slice(0, config.sampleSize)
+    const pathPrefix = baseUrl.pathname.replace(/\/+$/, "")
+    const scoped = pathPrefix.length > 1
+      ? sitemapUrls.filter((u) => {
+          try {
+            return new URL(u).pathname.startsWith(pathPrefix)
+          } catch {
+            return false
+          }
+        })
+      : sitemapUrls
+    const pool = scoped.length > 0 ? scoped : sitemapUrls
+    // deterministic, evenly-spread sample so re-runs produce the same score
+    const step = Math.max(1, Math.floor(pool.length / config.sampleSize))
+    pagesToSample = pool.filter((_, i) => i % step === 0).slice(0, config.sampleSize)
   } else {
     const mainPage = await fetchPage(targetUrl, config)
     const linkRegex = /<a[^>]+href=["']([^"'#]+)["']/gi
@@ -117,20 +142,22 @@ const buildRemoteContext = async (
     pagesToSample.unshift(targetUrl)
   }
 
-  const sampledPages = await fetchMany(pagesToSample, config)
+  const sampledPages = await fetchMany(pagesToSample, config, true)
 
   emit({ type: "context-ready", pageCount: sampledPages.length })
 
-  for (const page of sampledPages) {
-    const mdResult = await fetchWithContentNegotiation(page.url, "text/markdown", config)
-    if (
-      mdResult &&
-      mdResult.statusCode === 200 &&
-      (mdResult.contentType.includes("text/markdown") || mdResult.contentType.includes("text/plain"))
-    ) {
-      page.markdown = mdResult.text
-    }
-  }
+  await Promise.allSettled(
+    sampledPages.map(async (page) => {
+      const mdResult = await fetchWithContentNegotiation(page.url, "text/markdown", config)
+      if (
+        mdResult &&
+        mdResult.statusCode === 200 &&
+        (mdResult.contentType.includes("text/markdown") || mdResult.contentType.includes("text/plain"))
+      ) {
+        page.markdown = mdResult.text
+      }
+    }),
+  )
 
   return {
     mode: "remote",
@@ -161,7 +188,7 @@ const stripUndefined = (obj: AgentimizationConfig): AgentimizationConfig => {
   return result
 }
 
-/** Shared scoring logic — runs checks against a context and computes results */
+/** Shared scoring logic: runs checks against a context and computes results */
 const runAudit = async (
   ctx: AuditContext,
   config: Required<AgentimizationConfig>,
