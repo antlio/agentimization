@@ -1,14 +1,26 @@
 import type { PageSample, AgentimizationConfig } from "@agentimization/shared"
 import { DEFAULT_CONFIG } from "@agentimization/shared"
 
-const makeHeaders = (config: AgentimizationConfig): Record<string, string> => ({
-  "User-Agent": config.userAgent ?? DEFAULT_CONFIG.userAgent,
-  Accept: "text/html,application/xhtml+xml,text/markdown,text/plain,*/*",
-})
+// html-only Accept (no text/markdown) + browser UA so content-negotiating sites
+// serve the real rendered HTML instead of the agent markdown variant
+const BROWSER_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+const makeHeaders = (config: AgentimizationConfig, asBrowser = false): Record<string, string> =>
+  asBrowser
+    ? {
+        "User-Agent": BROWSER_UA,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      }
+    : {
+        "User-Agent": config.userAgent ?? DEFAULT_CONFIG.userAgent,
+        Accept: "text/html,application/xhtml+xml,text/markdown,text/plain,*/*",
+      }
 
 export const fetchPage = async (
   url: string,
   config: AgentimizationConfig = {},
+  asBrowser = false,
 ): Promise<PageSample> => {
   const timeout = config.timeout ?? DEFAULT_CONFIG.timeout
   const start = Date.now()
@@ -18,7 +30,7 @@ export const fetchPage = async (
 
   try {
     const response = await fetch(url, {
-      headers: makeHeaders(config),
+      headers: makeHeaders(config, asBrowser),
       signal: controller.signal,
       redirect: "follow",
     })
@@ -90,6 +102,7 @@ export const fetchWithContentNegotiation = async (
 export const fetchMany = async (
   urls: string[],
   config: AgentimizationConfig = {},
+  asBrowser = false,
 ): Promise<PageSample[]> => {
   const concurrency = config.concurrency ?? DEFAULT_CONFIG.concurrency
   const results: PageSample[] = []
@@ -97,7 +110,7 @@ export const fetchMany = async (
   for (let i = 0; i < urls.length; i += concurrency) {
     const chunk = urls.slice(i, i + concurrency)
     const chunkResults = await Promise.allSettled(
-      chunk.map((url) => fetchPage(url, config)),
+      chunk.map((url) => fetchPage(url, config, asBrowser)),
     )
 
     for (const result of chunkResults) {

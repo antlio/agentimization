@@ -64,6 +64,65 @@ const mcpServerCard: CheckDefinition = {
   },
 }
 
+// ─── MCP Tool Count ─────────────────────────────────────
+
+const mcpToolCount: CheckDefinition = {
+  id: "mcp-tool-count",
+  name: "MCP Tool Count",
+  category: "agent-protocols",
+  description: "Checks that the MCP server card exposes at least one tool",
+  weight: 0.4,
+  run: async (ctx) => {
+    if (!ctx.mcpServerCard) {
+      return {
+        id: "mcp-tool-count",
+        name: "MCP Tool Count",
+        category: "agent-protocols",
+        status: "skip",
+        message: "Skipped: no MCP server card found",
+      }
+    }
+
+    let card: { tools?: unknown[]; capabilities?: { tools?: unknown[] } }
+    try {
+      card = JSON.parse(ctx.mcpServerCard)
+    } catch {
+      return {
+        id: "mcp-tool-count",
+        name: "MCP Tool Count",
+        category: "agent-protocols",
+        status: "skip",
+        message: "Skipped: MCP server card is invalid JSON",
+      }
+    }
+
+    const toolCount = Array.isArray(card.tools) ? card.tools.length
+      : Array.isArray(card.capabilities?.tools) ? card.capabilities.tools.length
+      : 0
+
+    if (toolCount > 0) {
+      return {
+        id: "mcp-tool-count",
+        name: "MCP Tool Count",
+        category: "agent-protocols",
+        status: "pass",
+        message: `MCP server exposes ${toolCount} tool${toolCount === 1 ? "" : "s"}`,
+        metadata: { toolCount },
+      }
+    }
+
+    return {
+      id: "mcp-tool-count",
+      name: "MCP Tool Count",
+      category: "agent-protocols",
+      status: "warn",
+      message: "MCP server card found but exposes no tools",
+      suggestion: "List your MCP server's tools in the server card so agents know what actions are available before connecting.",
+      metadata: { toolCount },
+    }
+  },
+}
+
 // ─── API Catalog (RFC 9727) ─────────────────────────────
 
 const apiCatalog: CheckDefinition = {
@@ -148,7 +207,7 @@ const contentSignals: CheckDefinition = {
         name: "Content Signals (AI Usage Declarations)",
         category: "agent-protocols",
         status: "info",
-        message: "No robots.txt found — cannot check for content signals",
+        message: "No robots.txt found, cannot check for content signals",
         suggestion: "Add a robots.txt with Content Signals directives to declare how AI agents may use your content (ai-train, ai-input, search).",
       }
     }
@@ -363,7 +422,7 @@ const agentsMd: CheckDefinition = {
         category: "agent-protocols",
         status: "fail",
         message: "No AGENTS.md or AGENT.md found",
-        suggestion: "Add an AGENTS.md at the project root. This is the universal agent configuration file — a README for AI coding agents. Include build/test commands, architecture overview, conventions, and any gotchas. Used by 60k+ open-source projects.",
+        suggestion: "Add an AGENTS.md at the project root. This is the universal agent configuration file, a README for AI coding agents. Include build/test commands, architecture overview, conventions, and any gotchas. Used by 60k+ open-source projects.",
       }
     }
 
@@ -422,6 +481,7 @@ const agentsMd: CheckDefinition = {
 
 export const agentProtocolChecks: CheckDefinition[] = [
   mcpServerCard,
+  mcpToolCount,
   apiCatalog,
   contentSignals,
   linkHeaders,
